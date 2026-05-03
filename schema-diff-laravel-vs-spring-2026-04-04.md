@@ -1,0 +1,1379 @@
+# Laravel vs Spring Schema Diff
+
+- Laravel source: `2026-04-04T12:54:25.sql` (MySQL dump)
+- Spring source: `src/main/resources/db/migration/main/*.sql` + `src/main/resources/db/migration/logs/*.sql` (PostgreSQL Flyway)
+
+## Summary
+- Laravel tables: **56**
+- Spring tables: **38**
+- Tables only in Laravel: **19**
+- Tables only in Spring: **1**
+
+## Tables Only In Laravel
+- `contents`
+- `email_archives`
+- `failed_jobs`
+- `invoices`
+- `migrations`
+- `model_has_permissions`
+- `oauth_access_tokens`
+- `oauth_auth_codes`
+- `oauth_clients`
+- `oauth_personal_access_clients`
+- `oauth_refresh_tokens`
+- `paid_file_contents`
+- `product_attribute_product_variant`
+- `product_product_attribute`
+- `social_accounts`
+- `system_settings`
+- `transaction_amazon`
+- `transaction_paypal`
+- `transaction_stripe`
+
+## Tables Only In Spring
+- `audits`
+
+## Common Table Detailed Differences
+### `access_tokens`
+- Column definition mismatches (11):
+  - `accessable_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(120) NOT NULL`
+  - `accessable_type`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(120) NOT NULL`
+  - `content`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `JSONB`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `expiry`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `issuer_user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES users(id) ON DELETE SET NULL`
+  - `token`
+    - Laravel: `varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(512) NOT NULL`
+  - `type`
+    - Laravel: `int NOT NULL DEFAULT '0'`
+    - Spring: `INTEGER NOT NULL DEFAULT 0`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES users(id) ON DELETE SET NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key access_tokens_accessable_type_accessable_id_index (accessable_type,accessable_id)`
+  - Laravel only: `key access_tokens_issuer_user_id_foreign (issuer_user_id)`
+  - Laravel only: `key access_tokens_user_id_foreign (user_id)`
+- Foreign key differences:
+  - Laravel only: `constraint access_tokens_issuer_user_id_foreign foreign key (issuer_user_id) references users (id) on delete set null`
+  - Laravel only: `constraint access_tokens_user_id_foreign foreign key (user_id) references users (id) on delete set null`
+  - Spring only: `issuer_user_id uuid references users(id) on delete set null`
+  - Spring only: `user_id uuid references users(id) on delete set null`
+
+### `addresses`
+- Column definition mismatches (14):
+  - `address_line_1`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `address_line_2`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `country`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'UK'`
+    - Spring: `VARCHAR(255) NOT NULL DEFAULT 'UK'`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `lat`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `lon`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `name`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `post_code`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `town`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID NOT NULL REFERENCES users(id)`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key addresses_user_id_foreign (user_id)`
+- Foreign key differences:
+  - Laravel only: `constraint addresses_user_id_foreign foreign key (user_id) references users (id)`
+  - Spring only: `user_id uuid not null references users(id)`
+
+### `banners`
+- Columns only in Laravel (7): `background_image`, `button_text`, `button_url`, `description`, `show_button`, `title`, `total_clicks`
+- Columns only in Spring (3): `click_count`, `image`, `name`
+- Column definition mismatches (6):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+
+### `cart_product`
+- Column definition mismatches (7):
+  - `cart_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES carts(id) ON DELETE CASCADE`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `product_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES products(id) ON DELETE CASCADE`
+  - `product_variant_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES product_variants(id) ON DELETE CASCADE`
+  - `quantity`
+    - Laravel: `bigint unsigned NOT NULL DEFAULT '1'`
+    - Spring: `BIGINT NOT NULL DEFAULT 1`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Unique constraint differences:
+  - Laravel only: `unique key cart_product_cart_id_product_id_product_variant_id_unique (cart_id,product_id,product_variant_id)`
+  - Spring only: `unique(cart_id, product_id, product_variant_id)`
+- Non-unique index differences:
+  - Laravel only: `key cart_product_product_id_foreign (product_id)`
+  - Laravel only: `key cart_product_product_variant_id_foreign (product_variant_id)`
+- Foreign key differences:
+  - Laravel only: `constraint cart_product_cart_id_foreign foreign key (cart_id) references carts (id) on delete cascade`
+  - Laravel only: `constraint cart_product_product_id_foreign foreign key (product_id) references products (id) on delete cascade`
+  - Laravel only: `constraint cart_product_product_variant_id_foreign foreign key (product_variant_id) references product_variants (id) on delete cascade`
+  - Spring only: `cart_id uuid references carts(id) on delete cascade`
+  - Spring only: `product_id uuid references products(id) on delete cascade`
+  - Spring only: `product_variant_id uuid references product_variants(id) on delete cascade`
+
+### `carts`
+- Column definition mismatches (6):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `ip_address`
+    - Laravel: `varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(100)`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES users(id) ON DELETE SET NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key carts_user_id_foreign (user_id)`
+- Foreign key differences:
+  - Laravel only: `constraint carts_user_id_foreign foreign key (user_id) references users (id) on delete set null`
+  - Spring only: `user_id uuid references users(id) on delete set null`
+
+### `delivery_rules`
+- Columns only in Laravel (10): `countries`, `distance_unit`, `lat`, `lon`, `max_distance`, `max_weight`, `min_distance`, `min_weight`, `postcodes`, `status`
+- Columns only in Spring (3): `country`, `name`, `price`
+- Column definition mismatches (9):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `delivery_type_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID NOT NULL REFERENCES delivery_types(id) ON DELETE CASCADE`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `max_cart_price`
+    - Laravel: `bigint unsigned DEFAULT NULL`
+    - Spring: `NUMERIC(18,2)`
+  - `min_cart_price`
+    - Laravel: `bigint unsigned DEFAULT NULL`
+    - Spring: `NUMERIC(18,2)`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key delivery_rules_delivery_type_id_foreign (delivery_type_id)`
+- Foreign key differences:
+  - Laravel only: `constraint delivery_rules_delivery_type_id_foreign foreign key (delivery_type_id) references delivery_types (id)`
+  - Spring only: `delivery_type_id uuid not null references delivery_types(id) on delete cascade`
+
+### `delivery_types`
+- Columns only in Laravel (2): `enabled_by_default_on_creation`, `price`
+- Column definition mismatches (8):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `description`
+    - Laravel: `json NOT NULL`
+    - Spring: `JSONB`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `name`
+    - Laravel: `json NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+
+### `discount_rule_product`
+- Column definition mismatches (2):
+  - `discount_rule_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID REFERENCES discount_rules(id) ON DELETE CASCADE`
+  - `product_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES products(id) ON DELETE CASCADE`
+- Primary key differences:
+  - Spring only: `primary key (discount_rule_id, product_id)`
+- Unique constraint differences:
+  - Laravel only: `unique key discount_rule_product_discount_rule_id_product_id_unique (discount_rule_id,product_id)`
+- Non-unique index differences:
+  - Laravel only: `key discount_rule_product_product_id_foreign (product_id)`
+- Foreign key differences:
+  - Laravel only: `constraint discount_rule_product_discount_rule_id_foreign foreign key (discount_rule_id) references discount_rules (id)`
+  - Laravel only: `constraint discount_rule_product_product_id_foreign foreign key (product_id) references products (id) on delete cascade`
+  - Spring only: `discount_rule_id uuid references discount_rules(id) on delete cascade`
+  - Spring only: `product_id uuid references products(id) on delete cascade`
+
+### `discount_rule_product_category`
+- Column definition mismatches (2):
+  - `discount_rule_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID REFERENCES discount_rules(id) ON DELETE CASCADE`
+  - `product_category_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID REFERENCES product_categories(id) ON DELETE CASCADE`
+- Primary key differences:
+  - Spring only: `primary key (discount_rule_id, product_category_id)`
+- Unique constraint differences:
+  - Laravel only: `unique key discount_rule_product_category (discount_rule_id,product_category_id)`
+- Non-unique index differences:
+  - Laravel only: `key discount_rule_product_category_product_category_id_foreign (product_category_id)`
+- Foreign key differences:
+  - Laravel only: `constraint discount_rule_product_category_discount_rule_id_foreign foreign key (discount_rule_id) references discount_rules (id)`
+  - Laravel only: `constraint discount_rule_product_category_product_category_id_foreign foreign key (product_category_id) references product_categories (id)`
+  - Spring only: `discount_rule_id uuid references discount_rules(id) on delete cascade`
+  - Spring only: `product_category_id uuid references product_categories(id) on delete cascade`
+
+### `discount_rules`
+- Column definition mismatches (11):
+  - `amount`
+    - Laravel: `decimal(8,2) unsigned NOT NULL`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `name`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `type`
+    - Laravel: `tinyint NOT NULL`
+    - Spring: `INTEGER NOT NULL DEFAULT 0`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `valid_from`
+    - Laravel: `datetime NOT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `valid_until`
+    - Laravel: `datetime NOT NULL`
+    - Spring: `TIMESTAMPTZ`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+
+### `event_logs`
+- Column definition mismatches (8):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `data`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `TEXT NOT NULL`
+  - `eventable_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `eventable_type`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `message`
+    - Laravel: `varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(200) NOT NULL`
+  - `type`
+    - Laravel: `tinyint NOT NULL`
+    - Spring: `INTEGER NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+
+### `favorited_products`
+- Column definition mismatches (2):
+  - `product_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE`
+- Primary key differences:
+  - Laravel only: `primary key (user_id,product_id)`
+  - Spring only: `primary key (user_id, product_id)`
+- Non-unique index differences:
+  - Laravel only: `key favorited_products_product_id_foreign (product_id)`
+- Foreign key differences:
+  - Laravel only: `constraint favorited_products_product_id_foreign foreign key (product_id) references products (id) on delete cascade`
+  - Laravel only: `constraint favorited_products_user_id_foreign foreign key (user_id) references users (id) on delete cascade`
+  - Spring only: `product_id uuid not null references products(id) on delete cascade`
+  - Spring only: `user_id uuid not null references users(id) on delete cascade`
+
+### `file_contents`
+- Columns only in Laravel (9): `description`, `file_name`, `fileable_id`, `fileable_type`, `original_file_name`, `product_id`, `title`, `type`, `url`
+- Columns only in Spring (5): `deleted_at`, `mime_type`, `name`, `path`, `slug`
+- Column definition mismatches (4):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `size`
+    - Laravel: `varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `BIGINT`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key file_contents_fileable_type_fileable_id_index (fileable_type,fileable_id)`
+  - Laravel only: `key file_contents_product_id_foreign (product_id)`
+- Foreign key differences:
+  - Laravel only: `constraint file_contents_product_id_foreign foreign key (product_id) references products (id) on delete set null`
+
+### `model_has_roles`
+- Columns only in Laravel (2): `model_id`, `model_type`
+- Columns only in Spring (1): `user_id`
+- Column definition mismatches (1):
+  - `role_id`
+    - Laravel: `bigint unsigned NOT NULL`
+    - Spring: `BIGINT REFERENCES roles(id) ON DELETE CASCADE`
+- Primary key differences:
+  - Laravel only: `primary key (role_id,model_id,model_type)`
+  - Spring only: `primary key (role_id, user_id)`
+- Non-unique index differences:
+  - Laravel only: `key model_has_roles_model_id_model_type_index (model_id,model_type)`
+- Foreign key differences:
+  - Laravel only: `constraint model_has_roles_role_id_foreign foreign key (role_id) references roles (id) on delete cascade`
+  - Spring only: `role_id bigint references roles(id) on delete cascade`
+  - Spring only: `user_id uuid references users(id) on delete cascade`
+
+### `notes`
+- Columns only in Laravel (2): `note`, `public`
+- Columns only in Spring (3): `deleted_at`, `slug`, `text`
+- Column definition mismatches (6):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `noteable_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID`
+  - `noteable_type`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(120)`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES users(id) ON DELETE SET NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key notes_noteable_type_noteable_id_index (noteable_type,noteable_id)`
+  - Laravel only: `key notes_user_id_foreign (user_id)`
+- Foreign key differences:
+  - Laravel only: `constraint notes_user_id_foreign foreign key (user_id) references users (id) on delete set null`
+  - Spring only: `user_id uuid references users(id) on delete set null`
+
+### `notifications`
+- Columns only in Laravel (2): `notifiable_id`, `notifiable_type`
+- Columns only in Spring (2): `title`, `user_id`
+- Column definition mismatches (6):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `data`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `read_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `type`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key notifications_notifiable_type_notifiable_id_index (notifiable_type,notifiable_id)`
+- Foreign key differences:
+  - Spring only: `user_id uuid not null references users(id) on delete cascade`
+
+### `order_product`
+- Column definition mismatches (19):
+  - `amount`
+    - Laravel: `int NOT NULL DEFAULT '1'`
+    - Spring: `INTEGER NOT NULL DEFAULT 1`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `final_price`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `full_price`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `name`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `TEXT NOT NULL`
+  - `order_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES orders(id) ON DELETE SET NULL`
+  - `original_unit_price`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `product_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES products(id) ON DELETE SET NULL`
+  - `product_variant_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES product_variants(id) ON DELETE SET NULL`
+  - `return_reason`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `returned`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '0'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT FALSE`
+  - `returned_at`
+    - Laravel: `datetime DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `total_discount`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `unit_discount`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `unit_price`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `urls`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Unique constraint differences:
+  - Laravel only: `unique key order_product_order_id_product_id_product_variant_id_unique (order_id,product_id,product_variant_id)`
+  - Spring only: `unique(order_id, product_id, product_variant_id)`
+- Non-unique index differences:
+  - Laravel only: `key order_product_product_id_foreign (product_id)`
+  - Laravel only: `key order_product_product_variant_id_foreign (product_variant_id)`
+- Foreign key differences:
+  - Laravel only: `constraint order_product_order_id_foreign foreign key (order_id) references orders (id) on delete set null`
+  - Laravel only: `constraint order_product_product_id_foreign foreign key (product_id) references products (id) on delete set null`
+  - Laravel only: `constraint order_product_product_variant_id_foreign foreign key (product_variant_id) references product_variants (id) on delete set null`
+  - Spring only: `order_id uuid references orders(id) on delete set null`
+  - Spring only: `product_id uuid references products(id) on delete set null`
+  - Spring only: `product_variant_id uuid references product_variants(id) on delete set null`
+
+### `orders`
+- Column definition mismatches (16):
+  - `address_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID NOT NULL REFERENCES addresses(id)`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `currency_code`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'GBP'`
+    - Spring: `VARCHAR(8) NOT NULL DEFAULT 'GBP'`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `delivery_cost`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `delivery_type_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `original_price`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `status`
+    - Laravel: `int NOT NULL DEFAULT '1'`
+    - Spring: `INTEGER NOT NULL DEFAULT 0`
+  - `subtotal`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `total_discount`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `total_price`
+    - Laravel: `decimal(8,2) unsigned NOT NULL DEFAULT '0.00'`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES users(id)`
+  - `voucher_code_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key orders_address_id_foreign (address_id)`
+  - Laravel only: `key orders_delivery_type_id_foreign (delivery_type_id)`
+  - Laravel only: `key orders_user_id_foreign (user_id)`
+  - Laravel only: `key orders_voucher_code_id_foreign (voucher_code_id)`
+- Foreign key differences:
+  - Laravel only: `constraint orders_address_id_foreign foreign key (address_id) references addresses (id)`
+  - Laravel only: `constraint orders_delivery_type_id_foreign foreign key (delivery_type_id) references delivery_types (id)`
+  - Laravel only: `constraint orders_user_id_foreign foreign key (user_id) references users (id)`
+  - Laravel only: `constraint orders_voucher_code_id_foreign foreign key (voucher_code_id) references voucher_codes (id)`
+  - Spring only: `address_id uuid not null references addresses(id)`
+  - Spring only: `user_id uuid references users(id)`
+
+### `password_reset_tokens`
+- Columns only in Laravel (2): `id`, `updated_at`
+- Column definition mismatches (3):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `email`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(150) PRIMARY KEY`
+  - `token`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key password_resets_email_index (email)`
+
+### `payment_provider_configs`
+- Columns only in Laravel (1): `public`
+- Columns only in Spring (1): `public_value`
+- Column definition mismatches (7):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `id`
+    - Laravel: `bigint unsigned NOT NULL AUTO_INCREMENT`
+    - Spring: `BIGSERIAL PRIMARY KEY`
+  - `payment_provider_id`
+    - Laravel: `bigint unsigned NOT NULL`
+    - Spring: `BIGINT NOT NULL REFERENCES payment_providers(id) ON DELETE CASCADE`
+  - `setting`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `test_value`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(1000)`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `value`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(1000)`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key payment_provider_configs_payment_provider_id_foreign (payment_provider_id)`
+- Foreign key differences:
+  - Laravel only: `constraint payment_provider_configs_payment_provider_id_foreign foreign key (payment_provider_id) references payment_providers (id) on delete cascade`
+  - Spring only: `payment_provider_id bigint not null references payment_providers(id) on delete cascade`
+
+### `payment_providers`
+- Column definition mismatches (6):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '0'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT FALSE`
+  - `id`
+    - Laravel: `bigint unsigned NOT NULL AUTO_INCREMENT`
+    - Spring: `BIGSERIAL PRIMARY KEY`
+  - `name`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL UNIQUE`
+  - `test_mode`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Unique constraint differences:
+  - Laravel only: `unique key payment_providers_name_unique (name)`
+
+### `payment_sources`
+- Column definition mismatches (14):
+  - `brand`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(120)`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `exp_month`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(20)`
+  - `exp_year`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(20)`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `last_four`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(10)`
+  - `name`
+    - Laravel: `varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(100) NOT NULL`
+  - `payment_method_id`
+    - Laravel: `tinyint NOT NULL`
+    - Spring: `INTEGER NOT NULL`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `source_id`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `stripe_user_id`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES users(id) ON DELETE SET NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key payment_sources_user_id_foreign (user_id)`
+- Foreign key differences:
+  - Laravel only: `constraint payment_sources_user_id_foreign foreign key (user_id) references users (id) on delete set null`
+  - Spring only: `user_id uuid references users(id) on delete set null`
+
+### `payments`
+- Column definition mismatches (16):
+  - `amount`
+    - Laravel: `decimal(8,2) unsigned NOT NULL`
+    - Spring: `NUMERIC(18,2) NOT NULL`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `description`
+    - Laravel: `varchar(250) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(250)`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `method_ref`
+    - Laravel: `varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(150)`
+  - `payable_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `payable_type`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `payment_ref`
+    - Laravel: `varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(150)`
+  - `payment_source_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES payment_sources(id) ON DELETE SET NULL`
+  - `proof`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `status`
+    - Laravel: `tinyint NOT NULL DEFAULT '0'`
+    - Spring: `INTEGER NOT NULL DEFAULT 0`
+  - `type`
+    - Laravel: `tinyint NOT NULL`
+    - Spring: `INTEGER NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES users(id) ON DELETE SET NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key payments_payable_type_payable_id_index (payable_type,payable_id)`
+  - Laravel only: `key payments_payment_source_id_foreign (payment_source_id)`
+  - Laravel only: `key payments_user_id_foreign (user_id)`
+- Foreign key differences:
+  - Laravel only: `constraint payments_payment_source_id_foreign foreign key (payment_source_id) references payment_sources (id) on delete set null`
+  - Laravel only: `constraint payments_user_id_foreign foreign key (user_id) references users (id) on delete set null`
+  - Spring only: `payment_source_id uuid references payment_sources(id) on delete set null`
+  - Spring only: `user_id uuid references users(id) on delete set null`
+
+### `permissions`
+- Columns only in Laravel (1): `guard_name`
+- Column definition mismatches (4):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `id`
+    - Laravel: `bigint unsigned NOT NULL AUTO_INCREMENT`
+    - Spring: `BIGSERIAL PRIMARY KEY`
+  - `name`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(200) NOT NULL UNIQUE`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Unique constraint differences:
+  - Laravel only: `unique key permissions_name_guard_name_unique (name,guard_name)`
+
+### `product_attribute_options`
+- Column definition mismatches (10):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `image`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `name`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `product_attribute_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES product_attributes(id)`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `value`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key product_attribute_options_product_attribute_id_foreign (product_attribute_id)`
+- Foreign key differences:
+  - Laravel only: `constraint product_attribute_options_product_attribute_id_foreign foreign key (product_attribute_id) references product_attributes (id)`
+  - Spring only: `product_attribute_id uuid references product_attributes(id)`
+
+### `product_attributes`
+- Column definition mismatches (9):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `image`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `name`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `type`
+    - Laravel: `tinyint NOT NULL DEFAULT '1'`
+    - Spring: `INTEGER NOT NULL DEFAULT 0`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+
+### `product_categories`
+- Column definition mismatches (11):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `description`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `header_image`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `menu_image`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `name`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `parent_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES product_categories(id) ON DELETE SET NULL`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key product_categories_parent_id_foreign (parent_id)`
+- Foreign key differences:
+  - Laravel only: `constraint product_categories_parent_id_foreign foreign key (parent_id) references product_categories (id) on delete set null`
+  - Spring only: `parent_id uuid references product_categories(id) on delete set null`
+
+### `product_product_category`
+- Column definition mismatches (2):
+  - `product_category_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID REFERENCES product_categories(id) ON DELETE CASCADE`
+  - `product_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES products(id) ON DELETE CASCADE`
+- Primary key differences:
+  - Spring only: `primary key (product_id, product_category_id)`
+- Unique constraint differences:
+  - Laravel only: `unique key product_product_category_product_id_product_category_id_unique (product_id,product_category_id)`
+- Non-unique index differences:
+  - Laravel only: `key product_product_category_product_category_id_foreign (product_category_id)`
+- Foreign key differences:
+  - Laravel only: `constraint product_product_category_product_category_id_foreign foreign key (product_category_id) references product_categories (id) on delete cascade`
+  - Laravel only: `constraint product_product_category_product_id_foreign foreign key (product_id) references products (id) on delete cascade`
+  - Spring only: `product_category_id uuid references product_categories(id) on delete cascade`
+  - Spring only: `product_id uuid references products(id) on delete cascade`
+
+### `product_product_tag`
+- Column definition mismatches (2):
+  - `product_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES products(id) ON DELETE CASCADE`
+  - `product_tag_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES product_tags(id) ON DELETE CASCADE`
+- Primary key differences:
+  - Spring only: `primary key (product_id, product_tag_id)`
+- Unique constraint differences:
+  - Laravel only: `unique key product_product_tag_product_id_product_tag_id_unique (product_id,product_tag_id)`
+- Non-unique index differences:
+  - Laravel only: `key product_product_tag_product_tag_id_foreign (product_tag_id)`
+- Foreign key differences:
+  - Laravel only: `constraint product_product_tag_product_id_foreign foreign key (product_id) references products (id) on delete cascade`
+  - Laravel only: `constraint product_product_tag_product_tag_id_foreign foreign key (product_tag_id) references product_tags (id) on delete cascade`
+  - Spring only: `product_id uuid references products(id) on delete cascade`
+  - Spring only: `product_tag_id uuid references product_tags(id) on delete cascade`
+
+### `product_tags`
+- Column definition mismatches (10):
+  - `badge`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `description`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci`
+    - Spring: `JSONB`
+  - `display_badge`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '0'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT FALSE`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `name`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+
+### `product_variants`
+- Column definition mismatches (13):
+  - `attribute_options`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `data`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci`
+    - Spring: `TEXT`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `description`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci`
+    - Spring: `TEXT`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `price`
+    - Laravel: `decimal(8,2) unsigned NOT NULL`
+    - Spring: `NUMERIC(18,2) NOT NULL`
+  - `product_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE`
+  - `sku`
+    - Laravel: `varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(50) UNIQUE`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `stock`
+    - Laravel: `bigint unsigned NOT NULL DEFAULT '0'`
+    - Spring: `BIGINT NOT NULL DEFAULT 0`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Unique constraint differences:
+  - Laravel only: `unique key product_variants_sku_unique (sku)`
+- Non-unique index differences:
+  - Laravel only: `key product_variants_product_id_foreign (product_id)`
+- Foreign key differences:
+  - Laravel only: `constraint product_variants_product_id_foreign foreign key (product_id) references products (id) on delete cascade`
+  - Spring only: `product_id uuid not null references products(id) on delete cascade`
+
+### `products`
+- Column definition mismatches (21):
+  - `available_attribute_options`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `backup_stock`
+    - Laravel: `bigint unsigned DEFAULT '0'`
+    - Spring: `BIGINT`
+  - `cover_photo`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `description`
+    - Laravel: `longtext COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `headline`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci`
+    - Spring: `JSONB`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `name`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `price`
+    - Laravel: `decimal(8,2) unsigned NOT NULL`
+    - Spring: `NUMERIC(18,2) NOT NULL`
+  - `purchase_count`
+    - Laravel: `bigint unsigned NOT NULL DEFAULT '0'`
+    - Spring: `BIGINT NOT NULL DEFAULT 0`
+  - `rating`
+    - Laravel: `double(8,2) DEFAULT NULL`
+    - Spring: `DOUBLE PRECISION`
+  - `short_description`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `JSONB NOT NULL`
+  - `sku`
+    - Laravel: `varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(50) UNIQUE`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `status`
+    - Laravel: `tinyint NOT NULL DEFAULT '1'`
+    - Spring: `INTEGER NOT NULL DEFAULT 0`
+  - `stock`
+    - Laravel: `bigint unsigned NOT NULL DEFAULT '0'`
+    - Spring: `BIGINT NOT NULL DEFAULT 0`
+  - `subtitle`
+    - Laravel: `text COLLATE utf8mb4_unicode_ci`
+    - Spring: `JSONB`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `virtual`
+    - Laravel: `tinyint(1) DEFAULT '0'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT FALSE`
+  - `weight`
+    - Laravel: `int DEFAULT '0'`
+    - Spring: `INTEGER`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Unique constraint differences:
+  - Laravel only: `unique key products_sku_unique (sku)`
+- Non-unique index differences:
+  - Spring only: `index idx_products_name_trgm on products using gin ((coalesce(name->>'en', '')) gin_trgm_ops)`
+
+### `ratings`
+- Column definition mismatches (14):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `description`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(500)`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `language_prefix`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(10)`
+  - `ratable_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID`
+  - `ratable_type`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(120)`
+  - `rating`
+    - Laravel: `int NOT NULL`
+    - Spring: `INTEGER NOT NULL`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `title`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `user_id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `UUID REFERENCES users(id)`
+  - `verified`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Non-unique index differences:
+  - Laravel only: `key ratings_user_id_foreign (user_id)`
+- Foreign key differences:
+  - Laravel only: `constraint ratings_user_id_foreign foreign key (user_id) references users (id)`
+  - Spring only: `user_id uuid references users(id)`
+
+### `role_has_permissions`
+- Column definition mismatches (2):
+  - `permission_id`
+    - Laravel: `bigint unsigned NOT NULL`
+    - Spring: `BIGINT REFERENCES permissions(id) ON DELETE CASCADE`
+  - `role_id`
+    - Laravel: `bigint unsigned NOT NULL`
+    - Spring: `BIGINT REFERENCES roles(id) ON DELETE CASCADE`
+- Primary key differences:
+  - Laravel only: `primary key (permission_id,role_id)`
+  - Spring only: `primary key (role_id, permission_id)`
+- Non-unique index differences:
+  - Laravel only: `key role_has_permissions_role_id_foreign (role_id)`
+- Foreign key differences:
+  - Laravel only: `constraint role_has_permissions_permission_id_foreign foreign key (permission_id) references permissions (id) on delete cascade`
+  - Laravel only: `constraint role_has_permissions_role_id_foreign foreign key (role_id) references roles (id) on delete cascade`
+  - Spring only: `permission_id bigint references permissions(id) on delete cascade`
+  - Spring only: `role_id bigint references roles(id) on delete cascade`
+
+### `roles`
+- Columns only in Laravel (1): `guard_name`
+- Column definition mismatches (4):
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `id`
+    - Laravel: `bigint unsigned NOT NULL AUTO_INCREMENT`
+    - Spring: `BIGSERIAL PRIMARY KEY`
+  - `name`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(120) NOT NULL UNIQUE`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Unique constraint differences:
+  - Laravel only: `unique key roles_name_guard_name_unique (name,guard_name)`
+
+### `users`
+- Columns only in Laravel (1): `remember_token`
+- Column definition mismatches (19):
+  - `avatar`
+    - Laravel: `json DEFAULT NULL`
+    - Spring: `JSONB`
+  - `client_ref`
+    - Laravel: `varchar(12) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(12)`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `email`
+    - Laravel: `varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(150) NOT NULL UNIQUE`
+  - `email_verified_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `first_name`
+    - Laravel: `varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(100) NOT NULL`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `initials`
+    - Laravel: `varchar(5) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(5)`
+  - `is_favorite`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '0'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT FALSE`
+  - `last_name`
+    - Laravel: `varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(100) NOT NULL`
+  - `last_seen`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `name`
+    - Laravel: `varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(100)`
+  - `password`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(255)`
+  - `phone`
+    - Laravel: `varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(50)`
+  - `prefix`
+    - Laravel: `varchar(5) COLLATE utf8mb4_unicode_ci DEFAULT NULL`
+    - Spring: `VARCHAR(5)`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `temporary`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '0'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT FALSE`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+- Primary key differences:
+  - Laravel only: `primary key (id)`
+- Unique constraint differences:
+  - Laravel only: `unique key users_email_unique (email)`
+- Non-unique index differences:
+  - Laravel only: `key users_client_ref_index (client_ref)`
+
+### `voucher_codes`
+- Columns only in Laravel (1): `type`
+- Columns only in Spring (2): `discount_type`, `name`
+- Column definition mismatches (10):
+  - `amount`
+    - Laravel: `decimal(8,2) NOT NULL`
+    - Spring: `NUMERIC(18,2) NOT NULL DEFAULT 0`
+  - `code`
+    - Laravel: `varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(120) NOT NULL UNIQUE`
+  - `created_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `deleted_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `enabled`
+    - Laravel: `tinyint(1) NOT NULL DEFAULT '1'`
+    - Spring: `BOOLEAN NOT NULL DEFAULT TRUE`
+  - `id`
+    - Laravel: `char(36) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `UUID PRIMARY KEY`
+  - `slug`
+    - Laravel: `varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL`
+    - Spring: `VARCHAR(255) NOT NULL`
+  - `updated_at`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ NOT NULL`
+  - `valid_from`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+  - `valid_until`
+    - Laravel: `timestamp NULL DEFAULT NULL`
+    - Spring: `TIMESTAMPTZ`
+- Primary key differences:
+  - Laravel only: `primary key (id)`

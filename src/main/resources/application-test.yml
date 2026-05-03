@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    main:
+      hikari:
+        maximum-pool-size: 3
+        minimum-idle: 0
+    logs:
+      hikari:
+        maximum-pool-size: 2
+        minimum-idle: 0
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: false
+app:
+  jwt:
+    secret: test-secret-test-secret-test-secret
+    expiration-seconds: 3600
+  mail:
+    invites-enabled: false

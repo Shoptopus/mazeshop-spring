@@ -1,0 +1,2 @@
+ALTER TABLE access_tokens
+    ALTER COLUMN token TYPE VARCHAR(512);

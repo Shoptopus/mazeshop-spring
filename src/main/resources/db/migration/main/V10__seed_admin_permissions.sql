@@ -1,0 +1,21 @@
+INSERT INTO permissions(name, created_at, updated_at) VALUES
+    ('users.can.invite', now(), now()),
+    ('orders.view', now(), now()),
+    ('orders.manage', now(), now()),
+    ('payments.manage', now(), now()),
+    ('voucher_codes.view', now(), now()),
+    ('voucher_codes.manage', now(), now()),
+    ('delivery_types.view', now(), now()),
+    ('delivery_types.manage', now(), now()),
+    ('discount_rules.view', now(), now()),
+    ('discount_rules.manage', now(), now()),
+    ('ratings.manage', now(), now()),
+    ('banners.manage', now(), now()),
+    ('files.view', now(), now()),
+    ('files.manage', now(), now()),
+    ('notes.view', now(), now()),
+    ('notes.manage', now(), now()),
+    ('audits.view', now(), now()),
+    ('roles.view', now(), now()),
+    ('roles.manage', now(), now())
+ON CONFLICT (name) DO NOTHING;

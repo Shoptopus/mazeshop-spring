@@ -1,0 +1,2 @@
+ALTER TABLE product_attributes
+    ADD COLUMN IF NOT EXISTS show_in_filters BOOLEAN NOT NULL DEFAULT TRUE;
