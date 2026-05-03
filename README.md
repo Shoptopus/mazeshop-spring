@@ -1,20 +1,29 @@
-# Shoptopus Self-Host
+# Shoptopus
 
-`shoptopus-spring-selfhost` is the open-source self-hosted distribution of Shoptopus. It includes the Spring Boot backend and the storefront integration path. The admin frontend is intentionally not part of the default open-source build.
+       MMMMMMMMM                                                                                                        
+     MMMMMMMMMMMMM                  MMM                                                                                 
+    MMMMMMMMMMMMMMM                 MMM                               OMM~                                              
+    MMMMMMMMMMMMMMMM                MMM            .                  OMM=                   .            .             
+MMMMMMMMMMMMMMMMM        ~MMMMM  MMM?MMMMM  . MMMMMM    MMMMMMMM  7MMMMMM   MMMMMM    MMMMMMMM   MMM    MMM .MMMMMM  
+MMMM. MMMMM. MMMM.      ZMMMMMM, MMMM  MMMM. MMMMMMMMM  MMMM MMMM 7MMMMMM .MMMMOMMMM  MMMM $MMM  MMM    MMM MMMMMMM  
+. MMMMMMMMMMMMMMMD       +MMMI    MMM    MMM MMM    MMM. MM.   +MMM 7MM7   MMM   .MMM  MMM    MMM MMM    MMM MMMM     
+.MM :MMMMMMMMMNMMMM MMM      NMMMMM MMM    MMM.MMM    MMM  MM     MMM 7MM7   MMM    OMM7 MMM   .MMM.MMM    MMM   MMMMMO
+MMM. MMMMMM=8MMMMM  MMM     MM .MMM.MMM    MMM NMMM  MMMM  MMM   MMM   MMM    MMM. +MMM  MMM:  MMMM MMM$  MMMM  MM  MMM
+MMMMMMMMMMMMMMMMMMMMMMM     MMMMMMZ MMM    MMM   MMMMMMM   MMMMMMMM .  MMMMM  .MMMMMMM   MMMMMMMMI   MMMMMMMMM DMMMMMM.
+IMMMMMMMMMMMMMMMMMMMMMM      .  .                  .       MMM                           MMM .                          
+MMMMMMMMMMMMMMMMMMM                                      MMM                           MMM                            
+.MMMMMMMMM MMMMMMMMM                                      MMM                           MMM                            
+MMMMMMM     MMMMMMMN
+
+`shoptopus-spring-selfhost` is the open-source self-hosted distribution of Shoptopus.
 
 ## What is included
 
 - Spring Boot backend API
 - PostgreSQL migrations for main and logs databases
-- optional packaged storefront assets
-- optional packaged admin assets for internal/managed release builds only
+- Packaged storefront frontend
+- Packaged admin portal
 - Docker Compose for local PostgreSQL and MailHog
-
-## What is not included by default
-
-- the admin frontend is not built by the standard Maven package flow
-- open-source users can run the backend alone or package it together with the storefront
-- if you also have a private checkout of `../shoptopus-spring-admin`, you can still produce the combined managed build locally
 
 ## Requirements
 

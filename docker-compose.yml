@@ -2,7 +2,7 @@ version: '3.9'
 services:
   postgres:
     image: postgres:16
-    container_name: shoptopus-postgres
+    container_name: shoptopus-postgres-sh
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -20,7 +20,7 @@ services:
 
   mailhog:
     image: mailhog/mailhog:latest
-    container_name: shoptopus-mailhog
+    container_name: shoptopus-mailhog-sh
     ports:
       - "1025:1025"
       - "8025:8025"
