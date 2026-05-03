@@ -19,6 +19,11 @@ IMMMMMMMMMMMMMMMMMMMMMM      .  .                  .       MMM                  
 
 `shoptopus-spring-selfhost` is the open-source self-hosted distribution of Shoptopus.
 
+<p align="center">
+  <img src="./screenshots/storefront.png" alt="Shoptopus storefront screenshot" width="48%" />
+  <img src="./screenshots/admin.jpg" alt="Shoptopus admin screenshot" width="48%" />
+</p>
+
 ## What is included
 
 - Spring Boot backend API
