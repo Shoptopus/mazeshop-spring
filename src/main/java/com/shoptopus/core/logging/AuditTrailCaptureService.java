@@ -208,7 +208,7 @@ public class AuditTrailCaptureService {
     }
 
     private UUID resolveStoreId(Object entity) {
-        UUID currentStoreId = adminStoreContext.currentStoreIdOrNull();
+        UUID currentStoreId = adminStoreContext.currentStoreIdForAuditOrNull();
         if (currentStoreId != null) {
             return currentStoreId;
         }

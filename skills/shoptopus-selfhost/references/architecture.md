@@ -91,6 +91,7 @@ Migration landmarks: V1–V2 main schema/base seed; V8 content/invoices/settings
 ## Cross-cutting behavior
 
 - `AuditEntityListener` captures JPA lifecycle snapshots and attempts default-store assignment for entities with a null `store` field, excluding `User` and `Store`. This fallback does not establish the requested tenant.
+- Audit store attribution uses `AdminStoreContext.currentStoreIdForAuditOrNull()`, which performs scalar JDBC lookups. Calling the JPA-backed store resolver from entity lifecycle callbacks can re-enter Hibernate flush and corrupt its action queue; the logging regression exercises simultaneous dirty user/store updates and store-header permission parity.
 - `AuditTrailBuffer` buffers during synchronized transactions and writes after commit through `AuditTrailWriter` in the logs transaction manager. Failures are swallowed. It is best-effort audit history, not a transactional outbox.
 - `ApiLoggingAspect` wraps REST controllers and records path, query, duration, controller and failure data. It records application success/failure rather than a complete HTTP access-log model.
 - JDBC mutations bypass entity listeners. For example, cart quantity update clears the entity manager after SQL to avoid stale JPA state. Audit effects must be assessed separately for SQL-heavy changes.

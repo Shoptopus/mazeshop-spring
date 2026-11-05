@@ -126,6 +126,58 @@ public class AdminStoreContext {
         return activeStoreForCurrentRequest().map(Store::getId).orElse(null);
     }
 
+    /** Scalar lookups only: entity audit callbacks can run while Hibernate is flushing. */
+    public UUID currentStoreIdForAuditOrNull() {
+        String email = currentEmail().orElse(null);
+        if (email == null || email.isBlank()) {
+            return defaultStoreIdForAudit();
+        }
+        if (!multiStoreEnabled) {
+            return null;
+        }
+
+        var userStores = jdbc.query(
+                "select store_id from users where lower(email) = lower(?) and deleted_at is null",
+                (rs, rowNum) -> rs.getObject(1, UUID.class), email);
+        if (userStores.isEmpty()) {
+            return null;
+        }
+        UUID userStoreId = userStores.get(0);
+        boolean managesStores = canManageStores(email);
+        if (managesStores) {
+            UUID requested = requestedStoreId().orElse(null);
+            if (availableStoreForAudit(requested)) {
+                return requested;
+            }
+        } else {
+            UUID assigned = adminRoleScopeService.assignedStoreIds(email).stream().findFirst().orElse(null);
+            if (availableStoreForAudit(assigned)) {
+                return assigned;
+            }
+        }
+        if (userStoreId != null) {
+            return userStoreId;
+        }
+        if (managesStores) {
+            UUID assigned = adminRoleScopeService.assignedStoreIds(email).stream().findFirst().orElse(null);
+            if (availableStoreForAudit(assigned)) {
+                return assigned;
+            }
+        }
+        return defaultStoreIdForAudit();
+    }
+
+    private UUID defaultStoreIdForAudit() {
+        return jdbc.query("select id from stores where deleted_at is null order by created_at asc limit 1",
+                (rs, rowNum) -> rs.getObject(1, UUID.class)).stream().findFirst().orElse(null);
+    }
+
+    private boolean availableStoreForAudit(UUID storeId) {
+        return storeId != null && Boolean.TRUE.equals(jdbc.queryForObject(
+                "select exists(select 1 from stores where id = ?::uuid and deleted_at is null)",
+                Boolean.class, storeId.toString()));
+    }
+
     private Optional<String> currentEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
