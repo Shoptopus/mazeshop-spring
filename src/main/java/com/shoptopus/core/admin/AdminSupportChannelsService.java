@@ -103,9 +103,11 @@ public class AdminSupportChannelsService {
         return outgoingEmailQueueService.processQueued();
     }
 
-    @Transactional("mainTransactionManager")
     public Map<String, Object> testEmailSettings(Map<String, Object> body) {
-        emailSettingsService.sendTestEmail(body == null ? null : body.get("email"), required(body, "recipient"), emailDeliveryService);
+        String recipient = required(body, "recipient");
+        // Commit settings before delivery: Gmail refresh opens a separate transaction.
+        emailSettingsService.saveAdminSettings(body == null ? null : body.get("email"));
+        emailSettingsService.sendTestEmail(recipient, emailDeliveryService);
         return Map.of("status", "sent");
     }
 

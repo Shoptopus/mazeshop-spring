@@ -3,6 +3,11 @@ package com.shoptopus.core.admin.basecrud;
 import com.shoptopus.core.mail.EmailDeliveryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 
@@ -12,11 +17,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doAnswer;
 
 class AdminEmailSettingsControllerTest extends AdminControllerTestBase {
 
     @MockBean
     private EmailDeliveryService emailDeliveryService;
+
+    @Autowired
+    @Qualifier("mainTransactionManager")
+    private PlatformTransactionManager mainTransactionManager;
 
     @Test
     void admin_can_manage_email_settings_authorize_gmail_and_send_test_email() {
@@ -87,6 +97,25 @@ class AdminEmailSettingsControllerTest extends AdminControllerTestBase {
         Integer oauthStateRows = jdbc.queryForObject("select count(*) from access_tokens where type = 6", Integer.class);
         assertThat(oauthStateRows).isGreaterThan(0);
 
+        // Real Gmail refresh uses a separate transaction. It must see committed settings,
+        // and its new token must survive after the test endpoint returns.
+        doAnswer(invocation -> {
+            TransactionTemplate refresh = new TransactionTemplate(mainTransactionManager);
+            refresh.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            refresh.executeWithoutResult(status -> {
+                jdbc.execute("set local lock_timeout = '750ms'");
+                String committed = jdbc.queryForObject(
+                        "select value from system_settings where key = 'email.gmail' and deleted_at is null", String.class);
+                assertThat(committed).contains("updated-gmail-client-secret");
+                jdbc.update("""
+                        update system_settings
+                        set value = jsonb_set(value::jsonb, '{access_token}', to_jsonb('fresh-test-token'::text))::text
+                        where key = 'email.gmail' and deleted_at is null
+                        """);
+            });
+            return null;
+        }).when(emailDeliveryService).sendHtml(eq("test-recipient@example.com"), eq("Shoptopus email test"), contains("Shoptopus email provider configuration"));
+
         var sendTest = authed(token, HttpMethod.POST, "/api/admin-ui/shop-settings/email/test", Map.of(
                 "recipient", "test-recipient@example.com",
                 "email", Map.of(
@@ -103,12 +132,15 @@ class AdminEmailSettingsControllerTest extends AdminControllerTestBase {
                         ),
                         "gmail", Map.of(
                                 "client_id", "gmail-client-id",
-                                "client_secret", "__UNCHANGED__"
+                                "client_secret", "updated-gmail-client-secret"
                         )
                 )
         ));
         assert2xx(sendTest);
         verify(emailDeliveryService).sendHtml(eq("test-recipient@example.com"), eq("Shoptopus email test"), contains("Shoptopus email provider configuration"));
+
+        assertThat(jdbc.queryForObject("select value from system_settings where key = 'email.gmail' and deleted_at is null", String.class))
+                .contains("fresh-test-token");
 
         var disconnect = authed(token, HttpMethod.POST, "/api/admin-ui/shop-settings/email/gmail/disconnect", Map.of());
         assert2xx(disconnect);

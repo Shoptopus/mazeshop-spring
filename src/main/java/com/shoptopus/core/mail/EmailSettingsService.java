@@ -225,21 +225,18 @@ public class EmailSettingsService {
         persist(settings.withGmail(settings.gmail().withoutTokens()));
     }
 
-    @Transactional("mainTransactionManager")
-    public void sendTestEmail(Object rawEmailSettings, String recipient, EmailDeliveryService emailDeliveryService) {
+    public void sendTestEmail(String recipient, EmailDeliveryService emailDeliveryService) {
         if (blank(recipient)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "A recipient email is required for the test email.");
         }
-        EmailSettings current = readSettings();
-        EmailSettings next = mergedSettings(current, rawEmailSettings, true);
-        persist(next);
+        EmailSettings settings = readSettings();
         emailDeliveryService.sendHtml(
                 recipient.trim(),
                 "Shoptopus email test",
                 """
                         <p style="margin:0 0 16px;line-height:1.6;">This is a test email from your Shoptopus email provider configuration.</p>
                         <p style="margin:0;line-height:1.6;">Provider: <strong>%s</strong></p>
-                        """.formatted(escape(next.provider()))
+                        """.formatted(escape(settings.provider()))
         );
     }
 

@@ -36,7 +36,7 @@ Set `APP_API_PUBLIC_BASE_URL` to the public HTTPS shop origin before connecting 
 
 Use a dedicated Google OAuth web client, enable Gmail API, and authorize only Gmail send plus account identity. Store the client secret and refresh token through the protected runtime settings; keep credential downloads and token-bearing URLs out of Git. Mail settings and Gmail OAuth state values are redacted in entity audit snapshots. Runtime secrets remain in the database and encrypted backups.
 
-Google OAuth projects in Testing issue Gmail refresh tokens that expire after seven days. Complete Google's required branding/privacy information and use the appropriate production status for a durable connection. The Gmail identity is the shop's sender account; customers do not need to grant Gmail permissions. Verify an actual test message and token refresh after setup.
+Google OAuth projects in Testing issue Gmail refresh tokens that expire after seven days. Complete Google's required branding/privacy information and use the appropriate production status for a durable connection. The Gmail identity is the shop's sender account; customers do not need to grant Gmail permissions. Verify an actual test message and token refresh after setup. The test endpoint commits settings before delivery so Gmail refresh can persist a new token in its separate transaction; do not wrap that orchestration in a main-database transaction.
 
 ## Backups and recovery
 
