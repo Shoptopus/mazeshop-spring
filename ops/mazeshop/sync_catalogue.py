@@ -2,10 +2,12 @@
 """Apply owner-supplied Mazeshop catalogue through authenticated app APIs on the Pi."""
 import argparse, hashlib, html, json, mimetypes, os, re, sys, urllib.request, urllib.error, uuid
 from pathlib import Path
+from decimal import Decimal
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--directory',type=Path,required=True,help='Manifest, templates and prepared assets directory')
 parser.add_argument('--apply',action='store_true',help='Apply after validation; otherwise print the intended counts')
+parser.add_argument('--catalogue-only',action='store_true',help='Update products and variants without replacing shop settings or CMS pages')
 args=parser.parse_args(); root=args.directory
 catalogue=json.loads((root/'catalogue.json').read_text()); assets=json.loads((root/'assets-manifest.json').read_text())
 products=catalogue['products']
@@ -14,11 +16,14 @@ assert len({p['slug'] for p in products})==len(products)
 for p in products:
     assert 1<=len(p['photo_keys'])<=5
     assert p['status'] in ('draft','enabled')
-    assert p['status']=='draft' or (p['price_source'] and float(p['price'])>0)
+    amount=Decimal(str(p['price'] or 0))
+    assert amount.is_finite() and amount>=0
+    assert p['status']=='draft' or (amount>0 and (p.get('price_source') or p.get('pricing_basis')=='owner_authorized_estimate'))
+    assert isinstance(p['stock'],int) and p['stock']>=0
     for key in p['photo_keys']:
         f=root/'assets'/assets[key]['filename']
         assert f.exists() and hashlib.sha256(f.read_bytes()).hexdigest()==assets[key]['sha256']
-print('Validated',len(products),'products;',sum(p['status']=='enabled' for p in products),'with source prices;',len(assets),'web images',flush=True)
+print('Validated',len(products),'products;',sum(p['status']=='enabled' for p in products),'enabled;',sum(bool(p.get('price_source')) for p in products),'matched prices;',sum(p.get('pricing_basis')=='owner_authorized_estimate' for p in products),'estimated prices;',len(assets),'web images',flush=True)
 if not args.apply:sys.exit(0)
 if os.geteuid()!=0:raise SystemExit('Run on the Pi as root to read its local credentials; credentials never leave loopback.')
 credentials=json.loads(Path('/etc/shoptopus/credentials.json').read_text())
@@ -98,7 +103,7 @@ for number,p in enumerate(products,1):
     for n,key in enumerate(p['photo_keys']):
         photo=dict(image(key,p['slug']));photo.update(name=p['name']+' — view '+str(n+1),alt=p['name']+' — view '+str(n+1),sort_order=n)
         gallery.append(photo)
-    body={'name':{'en':p['name']},'slug':p['slug'],'short_description':{'en':p['short_description']},'description':{'en':p['description']},'price':p['price'] or '0.00','status':1 if p['status']=='enabled' else 0,'stock':p['stock'],'sku':'MAZE-'+p['slug'][:35].upper()+'-'+hashlib.sha256(p['slug'].encode()).hexdigest()[:8].upper(),'customizable':bool(p.get('customization_text')),'customization_text':{'en':p.get('customization_text') or ''},'category_ids':[state['categories'][p['category']]],'gallery_photos':gallery,'cover_photo_id':gallery[0]['id']}
+    body={'name':{'en':p['name']},'slug':p['slug'],'short_description':{'en':p['short_description']},'description':{'en':p['description']},'price':p['price'] or '0.00','status':1 if p['status']=='enabled' else 0,'stock':p['stock'],'weight':p.get('weight'),'sku':'MAZE-'+p['slug'][:35].upper()+'-'+hashlib.sha256(p['slug'].encode()).hexdigest()[:8].upper(),'customizable':bool(p.get('customization_text')),'customization_text':{'en':p.get('customization_text') or ''},'category_ids':[state['categories'][p['category']]],'gallery_photos':gallery,'cover_photo_id':gallery[0]['id']}
     if p['slug'] in existing:result=api('/products/'+str(existing[p['slug']]['id']),body,'PATCH')
     else:
         result=api('/products',body);existing[p['slug']]=result
@@ -123,14 +128,26 @@ colours,colour_opts=attribute('Binder colour','binder-colour',2,{'Teal':'#159d9b
 binder=next(p for p in products if 'binder_options' in p)
 binder_id=state['products'][binder['slug']]['id']
 variants={v['sku']:v for v in api('/products/'+binder_id+'/variants')['items']}
+variant_state=state.setdefault('variants',{})
 for size,allowed in binder['binder_options'].items():
     for colour in allowed:
         sku='MAZE-BINDER-'+size.upper()+'-'+colour.upper()
-        body={'slug':'binder-'+size+'-'+colour.lower(),'sku':sku,'enabled':True,'stock':0,'price':binder['price'],'description':{'en':size+' · '+colour},'attribute_options':{sizes:size_opts[size],colours:colour_opts[colour]}}
+        defaults=binder.get('binder_variant_defaults',{}).get(size,{'stock':0,'price':binder['price']})
+        assert isinstance(defaults['stock'],int) and defaults['stock']>=0
+        assert Decimal(str(defaults['price'])).is_finite() and Decimal(str(defaults['price']))>0
+        body={'slug':'binder-'+size+'-'+colour.lower(),'sku':sku,'enabled':True,'stock':defaults['stock'],'price':defaults['price'],'description':{'en':size+' · '+colour},'attribute_options':{sizes:size_opts[size],colours:colour_opts[colour]}}
+        signature=hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
         if sku not in variants:api('/products/'+binder_id+'/variants',body)
+        elif variant_state.get(sku,{}).get('signature') != signature:
+            api('/products/'+binder_id+'/variants/'+str(variants[sku]['id']),body,'PATCH')
         elif variants[sku]['attribute_options'] != body['attribute_options']:
             api('/products/'+binder_id+'/variants/'+str(variants[sku]['id']),{'attribute_options':body['attribute_options']},'PATCH')
+        variant_state[sku]={'signature':signature};save_state()
 print('Configured',sum(len(v) for v in binder['binder_options'].values()),'chart-backed binder variants',flush=True)
+if args.catalogue_only:
+    state['completed']=True;save_state()
+    print('Completed product and variant update; shop settings and CMS pages preserved.',flush=True)
+    sys.exit(0)
 # Preserve unrelated authentication, Gmail and payment settings.
 settings=api('/shop-settings');shop=settings['shop']
 shop.update(name='Mazeshop',tagline='Personalised gifts & laser-crafted design. Made in Chepstow.',contact_phone='+44 7715 295672',contact_address='Bulwark, Chepstow, Wales, United Kingdom',social_platforms=[{'platform':'facebook','url':'https://www.facebook.com/profile.php?id=61572260662151'},{'platform':'instagram','url':'https://www.instagram.com/maze_shop52/'},{'platform':'pinterest','url':'https://uk.pinterest.com/rolandtreiber/'},{'platform':'etsy','url':'https://www.etsy.com/uk/shop/MazeshopUK'}])
@@ -145,7 +162,7 @@ for s,title,home in [('home','Mazeshop',True),('about','About',False)]:
     else:page=api('/pages',body);pages[s]=page
     page_id=str(page['id']);contents=api('/content-targets/page/'+page_id+'/contents')['items']
     blocks=([{'language':'en','type':0,'text':render('home-top.html'),'sort_order':0},
-             {'language':'en','type':10,'text':'Workshop favourites','sort_order':1,'data':{'title':'Workshop favourites','max_count':4,'products':[{'id':state['products'][p['slug']]['id'],'enabled':True} for p in products if p['status']=='enabled']}},
+             {'language':'en','type':10,'text':'Workshop favourites','sort_order':1,'data':{'title':'Workshop favourites','max_count':4,'products':[{'id':state['products'][p['slug']]['id'],'enabled':True} for p in products if p['slug'] in catalogue.get('featured_products',[item['slug'] for item in products if item.get('price_source')])]}},
              {'language':'en','type':0,'text':render('home-bottom.html'),'sort_order':2}]
             if home else [{'language':'en','type':0,'text':render('about.html'),'sort_order':0}])
     for b in blocks:
