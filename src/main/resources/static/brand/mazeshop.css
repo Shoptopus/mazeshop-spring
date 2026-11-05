@@ -90,3 +90,21 @@ a:focus-visible,button:focus-visible{outline:3px solid #91ad2a;outline-offset:4p
 @media(max-width:950px){.mz-feature-grid{grid-template-columns:repeat(2,1fr)}.mz-hero{grid-template-columns:1fr 1fr}.mz-hero-copy{padding:32px}.mz-hero h1{font-size:clamp(2.7rem,6vw,4rem)}.mz-hero-copy>p:not(.mz-kicker){font-size:.95rem}.brand-tagline{max-width:24ch}}
 @media(max-width:680px){.utility-bar,.brand-bar,.main-nav,.page-shell,.site-footer{width:calc(100% - 32px)}.page-shell{padding:18px 0 40px}.brand-bar{gap:16px;flex-wrap:wrap}.brand-logo{width:190px;max-width:65vw}.brand-actions{gap:8px;flex-wrap:wrap}.brand-headline,.brand-tagline{display:none}.mz-hero,.mz-split,.mz-contact{grid-template-columns:1fr}.mz-hero-visual{min-height:330px;order:-1}.mz-hero-copy{padding:30px 25px}.mz-hero h1{font-size:3.4rem}.mz-proof{gap:12px;font-size:.73rem}.mz-proof strong{font-size:.76rem}.mz-section{padding:42px 0}.mz-section-head{display:grid;gap:16px}.mz-feature-grid{gap:13px}.mz-feature-body{padding:14px}.mz-feature-body h3{font-size:1rem}.mz-feature-body p{font-size:.78rem}.mz-three{grid-template-columns:1fr;gap:20px}.mz-contact{margin-top:40px;gap:24px}.mz-about .mz-pictures{gap:12px}.mz-about-lead{padding:12px 0 35px}.mz-contact h2{font-size:2.25rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.mz-feature-card img{transition:none}}
+
+/* A compact masthead keeps the workshop identity visible without repeating it. */
+.site-header{display:flex;align-items:center;gap:24px;padding:20px max(32px,calc((100% - 1328px)/2));min-height:96px;flex-wrap:wrap}
+.site-header .brand-bar{display:contents}
+.site-header .brand-block{display:none}
+.site-header .brand-mark{aspect-ratio:auto;max-width:none;order:0;flex-shrink:0}
+.site-header .brand-logo{width:235px;max-width:235px;max-height:52px}
+.site-header .main-nav{order:1;width:auto;flex:1;margin:0;border:0;padding:0;display:flex;gap:24px}
+.site-header .brand-actions{order:2;gap:16px}
+.site-header .utility-bar{order:3;width:auto;margin:0;padding:0;flex-direction:row;gap:0}
+.site-header .utility-bar>p:empty{display:none}
+.site-header .theme-toggle{padding:0;min-width:30px}
+.site-header .mobile-nav-toggle{display:none}
+.site-header .category-mega-panel .nav-link{color:var(--ink)}
+.site-header .ghost-link:hover,.site-header .text-link:hover{color:#d4f357}
+.mz-contact .mz-lime{color:#d4f357}
+@media(max-width:1050px){.site-header{gap:18px}.site-header .brand-logo{width:205px;max-width:205px}.site-header .brand-actions{gap:12px}.site-header .brand-actions [href="/register"]{display:none}}
+@media(max-width:680px){.site-header{gap:16px;padding:18px 16px;min-height:0;position:static}.site-header .brand-logo{width:180px;max-width:180px}.site-header .brand-actions{margin-left:auto;order:1;gap:16px}.site-header .brand-actions .ghost-link{font-size:.8rem}.site-header .main-nav{order:2;flex:1;font-size:.85rem}.site-header .utility-bar{order:3;font-size:.6rem;align-items:center}.site-header .utility-links{gap:10px}.site-header .main-nav .shop-nav-trigger{font-size:.85rem}}

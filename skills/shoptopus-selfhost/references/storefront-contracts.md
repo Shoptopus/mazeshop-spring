@@ -110,3 +110,9 @@ An authenticated checkout normally uses an owned `address_id`; a guest supplies 
 ```
 
 The browser should use server-provided totals and allowed delivery choices. Do not use formatted `GBP ...` strings for arithmetic. Commerce state, safety gaps and the meaning of confirmation are explained in the commerce and findings references.
+
+## Mazeshop content layer (November 2026)
+
+The Mazeshop deployment keeps editable styles, fonts and native SVG branding under `src/main/resources/static/brand/`; `scripts/apply-storefront-branding.mjs` adds the stylesheet and icons after a storefront rebuild. Do not patch minified React bundles. The separate `laser-workshop` source establishes its visual identity. CMS templates, sourced product definitions and the resumable loopback admin importer live under `ops/mazeshop/`. Runtime merchant edits remain in PostgreSQL. Refer to that directory's README before reapplying a manifest.
+
+Managed media has one attachment owner per file: reusing one uploaded file ID in two products transfers it to the last product. Upload a separate attachment for each owner even when the bytes match. Attribute option creation under `/api/admin-ui/attributes/{id}/options` returns the parent attribute detail, not the newly created option. Resolve the option by slug from `options` before mapping variant attribute IDs to option IDs. Verify `variant_attributes` and `variant_combinations` from the public product endpoint, rather than relying on variant counts alone.

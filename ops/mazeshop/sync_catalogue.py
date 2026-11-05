@@ -113,7 +113,9 @@ def attribute(name,s,type_,options):
     result={}
     for label,value in options.items():
         oslug=slug(label)
-        if oslug not in known:known[oslug]=api('/attributes/'+aid+'/options',{'name':{'en':label},'slug':oslug,'value':value,'enabled':True})
+        if oslug not in known:
+            detail=api('/attributes/'+aid+'/options',{'name':{'en':label},'slug':oslug,'value':value,'enabled':True})
+            known={o['slug']:o for o in detail['options']}
         result[label]=str(known[oslug]['id'])
     return aid,result
 sizes,size_opts=attribute('Binder format','binder-format',0,{'4-pocket':'4-pocket','9-pocket':'9-pocket'})
@@ -126,6 +128,8 @@ for size,allowed in binder['binder_options'].items():
         sku='MAZE-BINDER-'+size.upper()+'-'+colour.upper()
         body={'slug':'binder-'+size+'-'+colour.lower(),'sku':sku,'enabled':True,'stock':0,'price':binder['price'],'description':{'en':size+' · '+colour},'attribute_options':{sizes:size_opts[size],colours:colour_opts[colour]}}
         if sku not in variants:api('/products/'+binder_id+'/variants',body)
+        elif variants[sku]['attribute_options'] != body['attribute_options']:
+            api('/products/'+binder_id+'/variants/'+str(variants[sku]['id']),{'attribute_options':body['attribute_options']},'PATCH')
 print('Configured',sum(len(v) for v in binder['binder_options'].values()),'chart-backed binder variants',flush=True)
 # Preserve unrelated authentication, Gmail and payment settings.
 settings=api('/shop-settings');shop=settings['shop']
@@ -135,8 +139,8 @@ shop.update(logo=logo,logo_light=logo,logo_dark=logo)
 shop['theme']={'mode':'light','light_palette':{'background':'#f6f6ef','surface':'#ffffff','text':'#20231e','muted':'#62685b','accent':'#d4f357','accent_contrast':'#20231e','border':'#dedfd4'},'dark_palette':{'background':'#20231e','surface':'#2a2e26','text':'#f6f6ef','muted':'#bcc3b0','accent':'#d4f357','accent_contrast':'#20231e','border':'#444b3d'},'typography':{'body_font':'sans','display_font':'sans','base_font_size':16,'heading_scale':'display'},'shape':{'radius_scale':'sharp'},'layout':{'content_width':'wide'},'buttons':{'button_style':'solid'}}
 api('/shop-settings',{'shop':shop},'PATCH')
 pages={p['slug']:p for p in rows('/pages')}
-for s,title,home in [('home','Home',True),('about','About',False)]:
-    body={'title':{'en':title},'slug':s,'status':1,'show_in_menu':True,'home_page':home,'add_to_footer':not home}
+for s,title,home in [('home','Mazeshop',True),('about','About',False)]:
+    body={'title':{'en':title},'slug':s,'status':1,'show_in_menu':not home,'home_page':home,'add_to_footer':not home}
     if s in pages:page=api('/pages/'+str(pages[s]['id']),body,'PATCH')
     else:page=api('/pages',body);pages[s]=page
     page_id=str(page['id']);contents=api('/content-targets/page/'+page_id+'/contents')['items']
@@ -149,6 +153,6 @@ for s,title,home in [('home','Home',True),('about','About',False)]:
         if match:api('/contents/'+str(match['id']),b,'PATCH')
         else:api('/content-targets/page/'+page_id+'/contents',b)
     print('Updated page',s,flush=True)
-api('/pages/menu',{'tree':[{'kind':'page','page_id':str(pages['home']['id']),'children':[]},{'kind':'shop','children':[]},{'kind':'page','page_id':str(pages['about']['id']),'children':[]}]},'PUT')
+api('/pages/menu',{'tree':[{'kind':'shop','children':[]},{'kind':'page','page_id':str(pages['about']['id']),'children':[]}]},'PUT')
 state['completed']=True;save_state()
 print('Completed catalogue, home/about pages, social links and theme.',flush=True)
