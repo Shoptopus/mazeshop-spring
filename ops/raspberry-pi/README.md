@@ -73,3 +73,9 @@ Certbot renews the shop certificate through its HTTP webroot and validates/reloa
 Security upgrades are enabled without automatic reboot on this shared host. Schedule maintenance for OS updates and reboots, and check all existing sites afterwards. Existing encrypted TLS keys on unrelated sites need their own secure startup mechanism; do not remove encryption from those keys as part of routine shop deployment. The host-specific audit and recovery paths belong in private operational records, outside this public repository.
 
 Use wired Ethernet and reliable power for a live shop. The current home-server design has no redundancy; outages of power, broadband or this Pi interrupt the shop. Monitor backup/service failures in the journal and configure an alert destination before relying on unattended operation.
+
+## Mazeshop appearance and catalogue
+
+The brochure reference is the separate `laser-workshop` repository. The shop uses its charcoal/lime palette, self-hosted DM Sans and Manrope fonts, and maze geometry. Editable shop styles and licensed fonts live in `src/main/resources/static/brand/`; `scripts/apply-storefront-branding.mjs` reapplies the stylesheet link after a React build. The build script preserves that directory. Configure colours, contact details, social links, pages and products through the admin APIs; preserve unrelated Gmail/auth/payment sections when updating shop settings.
+
+Product photographs come from the owner's mounted SMB share, `Data/Photos/Mazeshop/products`. Keep source originals unchanged, remove location metadata from web copies and attach at most five varied images per product. Only use prices traced to matching MazeshopUK Etsy listings; keep unmatched products as drafts. The unrelated Etsy example is a configuration reference and does not establish Mazeshop's brand, colours, capacities or pricing.

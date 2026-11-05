@@ -26,5 +26,7 @@ fi
 
 (cd "$APP_DIR" && VITE_APP_BASE=/ npm run build)
 
-find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name studio -exec rm -rf {} +
+find "$TARGET_DIR" -mindepth 1 -maxdepth 1 ! -name studio ! -name brand -exec rm -rf {} +
 cp -R "$DIST_DIR"/. "$TARGET_DIR"/
+
+node "$ROOT_DIR/scripts/apply-storefront-branding.mjs" "$TARGET_DIR/index.html"
