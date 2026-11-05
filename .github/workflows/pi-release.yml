@@ -1,0 +1,61 @@
+name: Build and publish Pi release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pi-production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'Shoptopus/mazeshop-spring' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Test and package backend with its tracked React assets
+        run: ./mvnw -B -ntp clean verify
+      - name: Prepare release artifact
+        run: |
+          mkdir dist
+          cp target/core-0.0.1-SNAPSHOT.jar dist/shoptopus.jar
+          cd dist
+          sha256sum shoptopus.jar > shoptopus.jar.sha256
+      - name: Attest build provenance
+        id: provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: dist/shoptopus.jar
+      - name: Publish complete immutable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+        run: |
+          cp "$BUNDLE" dist/shoptopus.jar.sigstore.json
+          tag="pi-production-$COMMIT"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'This commit already has a release; publish a new commit to deploy again.'
+            exit 1
+          fi
+          gh release create "$tag" dist/* --draft --target "$COMMIT" \
+            --title "Pi production $COMMIT" --notes "Verified Java 21 build from main at $COMMIT."
+          gh release edit "$tag" --draft=false --latest=false

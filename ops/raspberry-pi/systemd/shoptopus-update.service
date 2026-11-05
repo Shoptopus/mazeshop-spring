@@ -1,0 +1,14 @@
+[Unit]
+Description=Verify and install the latest trusted Shoptopus GitHub release
+After=network-online.target postgresql@16-main.service
+Wants=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/shoptopus-update
+UMask=0077
+TimeoutStartSec=30min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/shoptopus /var/lib/shoptopus-deploy /var/backups/shoptopus /run/lock

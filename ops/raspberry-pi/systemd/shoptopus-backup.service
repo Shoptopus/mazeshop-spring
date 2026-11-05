@@ -1,0 +1,13 @@
+[Unit]
+Description=Encrypted backup of both Shoptopus databases, media and configuration
+After=postgresql@16-main.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/shoptopus-backup
+UMask=0077
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=30min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true

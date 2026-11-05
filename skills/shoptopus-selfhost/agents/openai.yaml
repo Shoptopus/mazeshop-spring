@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shoptopus Selfhost"
+  short_description: "Develop and debug Shoptopus backend and storefront"
+  default_prompt: "Use $shoptopus-selfhost to implement and verify this change in Shoptopus."

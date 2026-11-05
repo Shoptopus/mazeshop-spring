@@ -1,0 +1,44 @@
+[Unit]
+Description=Shoptopus shop application
+After=network-online.target postgresql@16-main.service
+Wants=network-online.target
+Requires=postgresql@16-main.service
+StartLimitIntervalSec=300
+StartLimitBurst=4
+
+[Service]
+Type=simple
+User=shoptopus
+Group=shoptopus
+WorkingDirectory=/var/lib/shoptopus
+EnvironmentFile=/etc/shoptopus/app.env
+ExecStart=/opt/shoptopus/java/bin/java -Xms128m -Xmx768m -XX:MaxMetaspaceSize=256m -XX:+ExitOnOutOfMemoryError -jar /opt/shoptopus/current.jar
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=60
+SuccessExitStatus=143
+UMask=0027
+MemoryHigh=1250M
+MemoryMax=1536M
+MemorySwapMax=256M
+CPUQuota=200%
+TasksMax=256
+LimitNOFILE=4096
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/shoptopus
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

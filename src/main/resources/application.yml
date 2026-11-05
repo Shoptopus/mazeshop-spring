@@ -77,6 +77,7 @@ app:
     storage-path: ${APP_MEDIA_STORAGE_PATH:${user.dir}/uploads/admin-media}
     public-base-url: ${APP_MEDIA_PUBLIC_BASE_URL:/media}
   snapshot:
+    maintenance-enabled: ${APP_SNAPSHOT_MAINTENANCE_ENABLED:true}
     directory: ${APP_SNAPSHOT_DIRECTORY:${user.dir}/snapshots}
     retention: ${APP_SNAPSHOT_RETENTION:PT168H}
     schedule:

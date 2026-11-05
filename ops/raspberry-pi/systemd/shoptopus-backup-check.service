@@ -1,0 +1,10 @@
+[Unit]
+Description=Check encrypted Shoptopus backup integrity
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/shoptopus/restic.env
+ExecStart=/usr/local/sbin/shoptopus-backup-check
+TimeoutStartSec=30min
+UMask=0077
+Nice=15
+IOSchedulingClass=idle

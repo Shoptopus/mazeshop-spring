@@ -1,0 +1,8 @@
+[Unit]
+Description=Poll GitHub for a verified Shoptopus release
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=30s
+[Install]
+WantedBy=timers.target
