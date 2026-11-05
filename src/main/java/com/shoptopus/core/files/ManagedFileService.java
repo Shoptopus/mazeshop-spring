@@ -66,7 +66,7 @@ public class ManagedFileService {
         file.setFileableType(fileableType);
         file.setFileableId(fileableId);
         file.setSortOrder(sortOrder == null ? 0 : sortOrder);
-        storedImageDimensions(path, mimeType).ifPresent(dimensions -> applyImageDimensions(file, dimensions));
+        refreshImageDimensions(file);
         return fileContentRepository.save(file);
     }
 
@@ -321,6 +321,13 @@ public class ManagedFileService {
         } catch (Exception ex) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to upload image", "Unable to store uploaded image");
         }
+    }
+
+    public void refreshImageDimensions(FileContent file) {
+        file.setWidth(null);
+        file.setHeight(null);
+        storedImageDimensions(file.getPath(), file.getMimeType())
+                .ifPresent(dimensions -> applyImageDimensions(file, dimensions));
     }
 
     public Optional<ImageDimensions> imageDimensions(FileContent file) {

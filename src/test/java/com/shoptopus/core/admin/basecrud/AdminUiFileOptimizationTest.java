@@ -63,6 +63,39 @@ class AdminUiFileOptimizationTest extends AdminControllerTestBase {
         assertThat(mediaRoot().resolve(String.valueOf(optimized.get("path")))).exists();
     }
 
+    @Test
+    void updating_file_path_or_mime_type_refreshes_persisted_image_dimensions() throws Exception {
+        String token = token();
+        String originalPath = "files/original-" + UUID.randomUUID() + ".png";
+        String replacementPath = "files/replacement-" + UUID.randomUUID() + ".png";
+        writeImage(originalPath, 400, 200);
+        writeImage(replacementPath, 300, 600);
+
+        var create = authed(token, HttpMethod.POST, "/api/admin-ui/files", Map.of(
+                "name", "replaceable-image",
+                "mime_type", "image/png",
+                "path", originalPath
+        ));
+        assert2xx(create);
+        String fileId = String.valueOf(((Map<?, ?>) create.getBody().get("data")).get("id"));
+
+        var update = authed(token, HttpMethod.PATCH, "/api/admin-ui/files/" + fileId, Map.of("path", replacementPath));
+        assert2xx(update);
+        Map<?, ?> updated = (Map<?, ?>) update.getBody().get("data");
+        assertThat(updated.get("width")).isEqualTo(300);
+        assertThat(updated.get("height")).isEqualTo(600);
+        assertThat(jdbc.queryForObject("select width from file_contents where id = ?::uuid", Integer.class, fileId)).isEqualTo(300);
+        assertThat(jdbc.queryForObject("select height from file_contents where id = ?::uuid", Integer.class, fileId)).isEqualTo(600);
+
+        var nonImage = authed(token, HttpMethod.PATCH, "/api/admin-ui/files/" + fileId, Map.of("mime_type", "application/octet-stream"));
+        assert2xx(nonImage);
+        Map<?, ?> nonImageData = (Map<?, ?>) nonImage.getBody().get("data");
+        assertThat(nonImageData.get("width")).isNull();
+        assertThat(nonImageData.get("height")).isNull();
+        assertThat(jdbc.queryForObject("select width from file_contents where id = ?::uuid", Integer.class, fileId)).isNull();
+        assertThat(jdbc.queryForObject("select height from file_contents where id = ?::uuid", Integer.class, fileId)).isNull();
+    }
+
     private void writeImage(String relativePath, int width, int height) throws Exception {
         Path target = mediaRoot().resolve(relativePath).normalize();
         Files.createDirectories(target.getParent());

@@ -62,6 +62,7 @@ public class AdminFileService {
         file.setType(str(body, "type", null));
         file.setFileableType(str(body, "fileable_type", null));
         file.setFileableId(uuid(str(body, "fileable_id", null)).orElse(null));
+        managedFileService.refreshImageDimensions(file);
         fileContentRepository.save(file);
         return Map.of("id", file.getId());
     }
@@ -107,6 +108,9 @@ public class AdminFileService {
         }
         if (body != null && body.containsKey("fileable_id")) {
             entity.setFileableId(uuid(str(body, "fileable_id", null)).orElse(null));
+        }
+        if (body != null && (body.containsKey("path") || body.containsKey("mime_type"))) {
+            managedFileService.refreshImageDimensions(entity);
         }
         fileContentRepository.save(entity);
         return Map.of("id", entity.getId());

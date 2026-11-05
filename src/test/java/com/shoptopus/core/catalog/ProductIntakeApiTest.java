@@ -2,6 +2,7 @@ package com.shoptopus.core.catalog;
 
 import com.shoptopus.core.IntegrationTestBase;
 import com.shoptopus.core.catalog.repository.ProductRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,6 +22,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ProductIntakeApiTest extends IntegrationTestBase {
+
+    private final List<UUID> seededCategoryIds = new ArrayList<>();
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -29,6 +33,14 @@ class ProductIntakeApiTest extends IntegrationTestBase {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @AfterEach
+    void removeSeededCategories() {
+        // HTTP requests commit separately, so fixture cleanup cannot rely on a test rollback.
+        for (int i = seededCategoryIds.size() - 1; i >= 0; i--) {
+            jdbc.update("delete from product_categories where id = ?::uuid", seededCategoryIds.get(i).toString());
+        }
+    }
 
     @Test
     void authenticated_users_with_products_manage_can_create_draft_products_from_plain_payloads() {
@@ -279,6 +291,7 @@ class ProductIntakeApiTest extends IntegrationTestBase {
                 "{\"en\":\"" + name.replace("\"", "\\\"") + "\"}",
                 slug,
                 "{\"en\":\"" + name.replace("\"", "\\\"") + "\"}");
+        seededCategoryIds.add(id);
         return id;
     }
 }
