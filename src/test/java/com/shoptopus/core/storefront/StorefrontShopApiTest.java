@@ -70,6 +70,18 @@ class StorefrontShopApiTest extends IntegrationTestBase {
     private int port;
 
     @Test
+    void privacy_notice_is_public_html_without_loading_the_storefront_application() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "http://localhost:" + port + "/privacy-policy", String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType().toString()).startsWith("text/html");
+        assertThat(response.getBody()).contains("Fluentech LTD", "14380150", "mazeshopsales@gmail.com",
+                "Google account connection and Gmail", "Limited Use requirements");
+        assertThat(response.getBody()).doesNotContain("<script", "assets/");
+    }
+
+    @Test
     void storefront_shop_endpoints_return_filters_cards_and_product_detail() {
         ProductCategory category = new ProductCategory();
         category.setName(Map.of("en", "Shoes"));

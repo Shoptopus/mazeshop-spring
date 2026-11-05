@@ -24,6 +24,12 @@ The storefront and `/studio` are protected by a temporary Apache preview login. 
 
 Payment providers are disabled. Configure and verify mail delivery through the shop settings before launch. Keep the preview gate until payment confirmation, order access, cart ownership and token revocation concerns described in the project findings are addressed, and real payment/email settings are verified. Never expose the seeded `password123` administrator password; the initial installation replaces it before enabling the proxy.
 
+## Public privacy notice
+
+`/privacy-policy` is a standalone HTML page packaged from `src/main/resources/legal/privacy-policy.html` and served by `PrivacyPolicyController`. It loads no SPA assets or third-party scripts. The Pi Apache site grants anonymous access only to the exact `/privacy-policy` route (optional trailing slash); the preview gate still protects the rest of the application. Keep that exception specific when changing proxy configuration. Use `https://shop.mazeshop.co.uk/privacy-policy` in Google OAuth branding.
+
+The notice identifies Fluentech LTD (14380150) using its Companies House registered office and `mazeshopsales@gmail.com` as the privacy contact. Review its data uses and retention commitments whenever providers, marketing, storage or operating practices change. It is a privacy notice, not a returns or warranty policy.
+
 ## Gmail mail delivery
 
 Set `APP_API_PUBLIC_BASE_URL` to the public HTTPS shop origin before connecting Gmail. The OAuth callback is `/api/admin-ui/shop-settings/email/gmail/callback`; do not authorize a localhost callback for the Pi. Set the sender to the connected Gmail account and the display name to the shop name.
