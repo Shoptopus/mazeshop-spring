@@ -22,7 +22,15 @@ During deployment, Apache serves maintenance responses, a complete backup is tak
 
 The storefront and `/studio` are protected by a temporary Apache preview login. A Secure, HttpOnly cookie allows authenticated frontend requests to carry the app's Bearer token without conflicting with Basic authentication. Changing the preview password alone does not revoke existing preview cookies: rotate the random cookie secret in the root-only Apache gate configuration as well, then reload Apache.
 
-Payment providers are disabled and SMTP is not configured. Keep the preview gate until payment confirmation, order access, cart ownership and token revocation concerns described in the project findings are addressed, and real payment/email settings are verified. Never expose the seeded `password123` administrator password; the initial installation replaces it before enabling the proxy.
+Payment providers are disabled. Configure and verify mail delivery through the shop settings before launch. Keep the preview gate until payment confirmation, order access, cart ownership and token revocation concerns described in the project findings are addressed, and real payment/email settings are verified. Never expose the seeded `password123` administrator password; the initial installation replaces it before enabling the proxy.
+
+## Gmail mail delivery
+
+Set `APP_API_PUBLIC_BASE_URL` to the public HTTPS shop origin before connecting Gmail. The OAuth callback is `/api/admin-ui/shop-settings/email/gmail/callback`; do not authorize a localhost callback for the Pi. Set the sender to the connected Gmail account and the display name to the shop name.
+
+Use a dedicated Google OAuth web client, enable Gmail API, and authorize only Gmail send plus account identity. Store the client secret and refresh token through the protected runtime settings; keep credential downloads and token-bearing URLs out of Git. Mail settings and Gmail OAuth state values are redacted in entity audit snapshots. Runtime secrets remain in the database and encrypted backups.
+
+Google OAuth projects in Testing issue Gmail refresh tokens that expire after seven days. Complete Google's required branding/privacy information and use the appropriate production status for a durable connection. The Gmail identity is the shop's sender account; customers do not need to grant Gmail permissions. Verify an actual test message and token refresh after setup.
 
 ## Backups and recovery
 

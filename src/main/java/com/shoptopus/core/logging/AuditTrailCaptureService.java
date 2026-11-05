@@ -1,7 +1,9 @@
 package com.shoptopus.core.logging;
 
 import com.shoptopus.core.adminui.AdminStoreContext;
+import com.shoptopus.core.auth.AccessToken;
 import com.shoptopus.core.common.jpa.UuidEntity;
+import com.shoptopus.core.settings.SystemSetting;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
@@ -63,6 +65,14 @@ public class AuditTrailCaptureService {
                     continue;
                 }
                 if ("auditSnapshot".equals(field.getName())) {
+                    continue;
+                }
+                boolean mailSettingsSecret = "value".equals(field.getName()) && entity instanceof SystemSetting setting
+                        && ("email.gmail".equals(setting.getKey()) || "email.smtp".equals(setting.getKey()));
+                boolean mailOAuthState = "token".equals(field.getName()) && entity instanceof AccessToken token
+                        && Integer.valueOf(6).equals(token.getType());
+                if (mailSettingsSecret || mailOAuthState) {
+                    snapshot.putIfAbsent(field.getName(), "[redacted]");
                     continue;
                 }
                 if (field.isAnnotationPresent(OneToMany.class) || field.isAnnotationPresent(ManyToMany.class)) {

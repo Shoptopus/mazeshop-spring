@@ -38,6 +38,8 @@ spring:
             enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
 
 app:
+  api:
+    public-base-url: ${APP_API_PUBLIC_BASE_URL:http://localhost:8080}
   root-user:
     username: ${APP_ROOT_USER_USERNAME:superadmin@m.com}
   multistore:

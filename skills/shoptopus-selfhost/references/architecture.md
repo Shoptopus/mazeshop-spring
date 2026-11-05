@@ -103,7 +103,7 @@ Migration landmarks: V1–V2 main schema/base seed; V8 content/invoices/settings
 
 Stripe uses a real `StripeClient` for intent creation/retrieval and refunds. Provider rows/settings exist for PayPal and Amazon, but the legacy `PaymentService.execute` only returns `accepted`; configuration presence is not proof of a complete gateway.
 
-SMTP and Gmail delivery run through `EmailSettingsService` / `EmailDeliveryService`. `ShopMailService` constructs order, receipt, message and onboarding emails. `OutgoingEmailQueueService` is a separate manual queue processor; there is no scheduler on that class. Some notifications and mail occur inside application transaction flows, so database rollback does not roll back remote effects.
+Mail settings (`email.gmail`, `email.smtp`) and Gmail OAuth state nonces are redacted in entity audit snapshots. Gmail OAuth callbacks use `app.api.public-base-url` / `APP_API_PUBLIC_BASE_URL`; production deployments must set the public HTTPS origin. SMTP and Gmail delivery run through `EmailSettingsService` / `EmailDeliveryService`. `ShopMailService` constructs order, receipt, message and onboarding emails. `OutgoingEmailQueueService` is a separate manual queue processor; there is no scheduler on that class. Some notifications and mail occur inside application transaction flows, so database rollback does not roll back remote effects.
 
 Social login uses configurable providers with persisted state and one-time handoff tokens. Merchant sync uses a service-account-based API client and stores run/item state through its admin facade. Both require real provider configuration to verify end to end.
 
