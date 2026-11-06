@@ -30,11 +30,18 @@ class StorefrontBootstrapApiTest extends IntegrationTestBase {
     @Autowired
     private PageRepository pageRepository;
 
+    @Autowired
+    private com.shoptopus.core.social.SocialProviderSettingsService socialProviders;
+
     @LocalServerPort
     private int port;
 
     @Test
     void storefront_bootstrap_endpoints_are_public_and_return_expected_shape() {
+        // Persisted settings override properties; do not depend on earlier tests' changes.
+        socialProviders.saveAdminConfigs(java.util.List.of(
+                Map.of("provider", "google", "enabled", true),
+                Map.of("provider", "facebook", "enabled", true)));
         Page page = new Page();
         page.setTitle(Map.of("en", "Home", "de", "Start"));
         page.setSlug("home-" + UUID.randomUUID());

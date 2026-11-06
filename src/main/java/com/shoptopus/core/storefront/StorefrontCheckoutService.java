@@ -251,7 +251,7 @@ public class StorefrontCheckoutService {
                     var rows =
                             jdbc.queryForList(
                                     "select * from storefront_checkout_attempts where order_id=?"
-                                        + " and payment_id=? for update",
+                                            + " and payment_id=? for update",
                                     orderId,
                                     paymentId);
                     if (rows.isEmpty())
@@ -442,8 +442,8 @@ public class StorefrontCheckoutService {
         var active =
                 jdbc.queryForList(
                         "select *,expires_at>now() as unexpired from storefront_checkout_attempts"
-                            + " where cart_id=? and store_id=? and status='pending' order by"
-                            + " created_at desc for update",
+                                + " where cart_id=? and store_id=? and status='pending' order by"
+                                + " created_at desc for update",
                         cartId,
                         store.getId());
         for (var prior : active) {
@@ -488,7 +488,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
         var intent = stripePaymentGateway.createPaymentIntent(price.total(), "GBP", metadata);
         jdbc.update(
                 "update storefront_checkout_attempts set"
-                    + " stripe_intent_id=?,client_secret=?,updated_at=now() where id=?",
+                        + " stripe_intent_id=?,client_secret=?,updated_at=now() where id=?",
                 intent.get("payment_intent_id"),
                 intent.get("client_secret"),
                 id);
@@ -506,19 +506,19 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
             if (quantity < 1) throw bad("Choose a positive item quantity.");
             if (jdbc.update(
                             "update products set stock=stock-?,updated_at=now() where id=? and"
-                                + " deleted_at is null and status=1 and stock>=?",
+                                    + " deleted_at is null and status=1 and stock>=?",
                             quantity,
                             item.getProduct().getId(),
                             quantity)
                     != 1)
                 throw bad(
                         "An item is no longer available in that quantity. Please update your"
-                            + " basket.");
+                                + " basket.");
             if (item.getProductVariant() != null
                     && jdbc.update(
                                     "update product_variants set stock=stock-?,updated_at=now()"
-                                        + " where id=? and product_id=? and enabled=true and"
-                                        + " deleted_at is null and stock>=?",
+                                            + " where id=? and product_id=? and enabled=true and"
+                                            + " deleted_at is null and stock>=?",
                                     quantity,
                                     item.getProductVariant().getId(),
                                     item.getProduct().getId(),
@@ -526,7 +526,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                             != 1)
                 throw bad(
                         "That option is no longer available in that quantity. Please update your"
-                            + " basket.");
+                                + " basket.");
         }
     }
 
@@ -535,12 +535,12 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
         if (!"stripe".equalsIgnoreCase(str(body.get("payment_provider"))))
             throw bad(
                     "Choose a supported payment method. A browser confirmation cannot mark a"
-                        + " payment as paid.");
+                            + " payment as paid.");
         String id = str(body.get("payment_intent_id"));
         var rows =
                 jdbc.queryForList(
                         "select * from storefront_checkout_attempts where stripe_intent_id=? for"
-                            + " update",
+                                + " update",
                         id);
         if (rows.isEmpty())
             throw bad("We could not find this payment session. Please return to your basket.");
@@ -560,7 +560,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
             if (!"succeeded".equals(stripe.status()))
                 throw bad(
                         "Your payment has not completed. You can retry payment without placing"
-                            + " another order.");
+                                + " another order.");
             completeAttempt(attempt, stripe, locale);
         }
         return attemptResponse(attempt((UUID) attempt.get("id")));
@@ -581,7 +581,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                         .equals(stripe.metadata().get("store_id")))
             throw bad(
                     "The payment does not match this order. Please contact the shop; do not pay"
-                        + " again.");
+                            + " again.");
     }
 
     private void completeAttempt(
@@ -628,7 +628,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
             int changed =
                     jdbc.update(
                             "update cart_product set quantity=quantity-?,updated_at=now() where"
-                                + " id=? and cart_id=? and quantity>?",
+                                    + " id=? and cart_id=? and quantity>?",
                             qty,
                             lineId,
                             row.get("cart_id"),
@@ -688,7 +688,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
         paymentRepository.save(payment);
         jdbc.update(
                 "update storefront_checkout_attempts set status='cancelled',updated_at=now() where"
-                    + " id=?",
+                        + " id=?",
                 row.get("id"));
         return false;
     }
@@ -699,7 +699,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                     for (var row :
                             jdbc.queryForList(
                                     "select * from storefront_checkout_attempts where cart_id=? and"
-                                        + " status='pending' for update",
+                                            + " status='pending' for update",
                                     cartId)) cancelAttempt(row, Locale.ENGLISH);
                 });
     }
@@ -711,7 +711,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                     var rows =
                             jdbc.queryForList(
                                     "select * from storefront_checkout_attempts where order_id=?"
-                                        + " for update",
+                                            + " for update",
                                     orderId);
                     if (rows.isEmpty()) throw bad("Payment session not found.");
                     var row = rows.get(0);
@@ -728,8 +728,8 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                     var rows =
                             jdbc.queryForList(
                                     "select *,expires_at<=now() as expired from"
-                                        + " storefront_checkout_attempts where order_id=? and"
-                                        + " status='pending' for update",
+                                            + " storefront_checkout_attempts where order_id=? and"
+                                            + " status='pending' for update",
                                     orderId);
                     if (rows.isEmpty()) return;
                     var row = rows.get(0);
@@ -752,7 +752,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
         for (UUID orderId :
                 jdbc.queryForList(
                         "select order_id from storefront_checkout_attempts where status='pending'"
-                            + " order by created_at limit 30",
+                                + " order by created_at limit 30",
                         UUID.class)) {
             try {
                 reconcileOrder(orderId);
@@ -773,7 +773,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
             for (UUID orderId :
                     jdbc.queryForList(
                             "select order_id from storefront_checkout_attempts where"
-                                + " stripe_intent_id=?",
+                                    + " stripe_intent_id=?",
                             UUID.class,
                             intent)) reconcileOrder(orderId);
         } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
@@ -863,7 +863,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                                         HttpStatus.BAD_REQUEST,
                                         "Validation failed",
                                         "This cart does not contain items for the selected"
-                                            + " store."));
+                                                + " store."));
     }
 
     private Map<String, Object> wholeCartGroup(Map<String, Object> cartRow) {
@@ -982,7 +982,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                                                 HttpStatus.BAD_REQUEST,
                                                 "Validation failed",
                                                 "Delivery type is not available for this"
-                                                    + " address."));
+                                                        + " address."));
 
         BigDecimal deliveryCost = decimal(selectedDelivery.get("price_amount"));
         String currency = "GBP";
@@ -1213,20 +1213,26 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                                 () ->
                                         new ApiException(
                                                 HttpStatus.BAD_REQUEST,
-                                                "Validation failed",
+                                                "Voucher code is invalid.",
                                                 "Voucher code is invalid."));
         if (!voucherCode.isEnabled()) {
             throw new ApiException(
-                    HttpStatus.BAD_REQUEST, "Validation failed", "Voucher code is disabled.");
+                    HttpStatus.BAD_REQUEST,
+                    "Voucher code is disabled.",
+                    "Voucher code is disabled.");
         }
         OffsetDateTime now = OffsetDateTime.now();
         if (voucherCode.getValidFrom() != null && voucherCode.getValidFrom().isAfter(now)) {
             throw new ApiException(
-                    HttpStatus.BAD_REQUEST, "Validation failed", "Voucher code is not active yet.");
+                    HttpStatus.BAD_REQUEST,
+                    "Voucher code is not active yet.",
+                    "Voucher code is not active yet.");
         }
         if (voucherCode.getValidUntil() != null && voucherCode.getValidUntil().isBefore(now)) {
             throw new ApiException(
-                    HttpStatus.BAD_REQUEST, "Validation failed", "Voucher code has expired.");
+                    HttpStatus.BAD_REQUEST,
+                    "Voucher code has expired.",
+                    "Voucher code has expired.");
         }
         return voucherCode;
     }
