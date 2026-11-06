@@ -220,12 +220,16 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         var body = guest(cart(), "mail-" + UUID.randomUUID() + "@example.invalid");
         var prepared = prepare(body);
         paid(prepared);
-        // Other classes share the test database; drain their queued mail before this failure.
-        while (outbox.processOnce() > 0) {}
         doThrow(new IllegalStateException("simulated mail outage"))
                 .when(mail)
                 .sendHtml(anyString(), anyString(), anyString());
         assertThat(submit(body, prepared).getStatusCode()).isEqualTo(HttpStatus.OK);
+        // Shared fixtures can create hundreds of admin notices during submit. Prioritize this
+        // test's receipt so the batch-size boundary cannot hide its delivery attempt.
+        jdbc.update(
+                "update system_mail_outbox set created_at=timestamp with time zone '2000-01-01"
+                    + " 00:00:00+00' where recipient=?",
+                map(body.get("contact")).get("email"));
         outbox.processOnce();
         assertThat(orderStatus(prepared)).isEqualTo(1);
         assertThat(
@@ -243,7 +247,7 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         assertThat(
                         jdbc.queryForObject(
                                 "select count(*) from system_mail_outbox where recipient=? and"
-                                    + " status='sent' and attempts=2",
+                                        + " status='sent' and attempts=2",
                                 Integer.class,
                                 map(body.get("contact")).get("email")))
                 .isEqualTo(1);
