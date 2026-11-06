@@ -63,11 +63,29 @@ public class EmailVerificationService {
                 user.getEmail(),
                 "Confirm your email address",
                 "<h1>Confirm your email</h1><p>Thanks for creating your account. Confirm your email"
-                    + " address to keep your account details up to date.</p><p><a href=\""
+                        + " address to keep your account details up to date.</p><p><a href=\""
                         + url
                         + "\">Confirm email address</a></p><p>This link expires in 24 hours. You"
                         + " can continue shopping while you confirm your email. If you did not"
                         + " create this account, ignore this email.</p>");
+    }
+
+    public void sendPasswordReset(User user, String token) {
+        String url =
+                storefront.replaceAll("/+$", "")
+                        + "/reset-password?token="
+                        + token
+                        + "&amp;email="
+                        + java.net.URLEncoder.encode(
+                                user.getEmail(), java.nio.charset.StandardCharsets.UTF_8);
+        outbox.enqueue(
+                user.getEmail(),
+                "Reset your Mazeshop password",
+                "<h1>Reset your password</h1><p><a href=\""
+                        + url
+                        + "\">Choose a new password</a></p><p>This single-use link expires in 60"
+                        + " minutes. If you did not request a password reset, ignore this"
+                        + " email.</p>");
     }
 
     @Transactional("mainTransactionManager")

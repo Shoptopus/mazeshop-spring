@@ -176,7 +176,7 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         assertThat(
                         jdbc.queryForObject(
                                 "select a.user_id is null from addresses a join orders o on"
-                                    + " o.address_id=a.id where o.id=?::uuid",
+                                        + " o.address_id=a.id where o.id=?::uuid",
                                 Boolean.class,
                                 prepared.get("order_id")))
                 .isTrue();
@@ -189,7 +189,7 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         assertThat(
                         jdbc.queryForObject(
                                 "select count(*) from system_mail_outbox where recipient=? and"
-                                    + " subject like 'Receipt for %'",
+                                        + " subject like 'Receipt for %'",
                                 Integer.class, email))
                 .isEqualTo(1);
     }
@@ -220,6 +220,8 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         var body = guest(cart(), "mail-" + UUID.randomUUID() + "@example.invalid");
         var prepared = prepare(body);
         paid(prepared);
+        // Other classes share the test database; drain their queued mail before this failure.
+        while (outbox.processOnce() > 0) {}
         doThrow(new IllegalStateException("simulated mail outage"))
                 .when(mail)
                 .sendHtml(anyString(), anyString(), anyString());
@@ -229,10 +231,22 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         assertThat(
                         jdbc.queryForObject(
                                 "select count(*) from system_mail_outbox where recipient=? and"
-                                    + " status='failed'",
+                                        + " status='failed'",
                                 Integer.class,
                                 map(body.get("contact")).get("email")))
                 .isGreaterThan(0);
+        doNothing().when(mail).sendHtml(anyString(), anyString(), anyString());
+        jdbc.update(
+                "update system_mail_outbox set next_attempt_at=now() where recipient=?",
+                map(body.get("contact")).get("email"));
+        while (outbox.processOnce() > 0) {}
+        assertThat(
+                        jdbc.queryForObject(
+                                "select count(*) from system_mail_outbox where recipient=? and"
+                                    + " status='sent' and attempts=2",
+                                Integer.class,
+                                map(body.get("contact")).get("email")))
+                .isEqualTo(1);
     }
 
     @Test
@@ -498,7 +512,7 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         assertThat(
                         jdbc.queryForObject(
                                 "select count(*) from system_mail_outbox where recipient=? and"
-                                    + " subject like 'Receipt for %'",
+                                        + " subject like 'Receipt for %'",
                                 Integer.class, map(body.get("contact")).get("email")))
                 .isEqualTo(1);
     }

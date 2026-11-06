@@ -91,7 +91,7 @@ class StorefrontAuthReliabilityApiTest extends IntegrationTestBase {
         String html =
                 jdbc.queryForObject(
                         "select html_content from system_mail_outbox where recipient=? order by"
-                            + " created_at desc limit 1",
+                                + " created_at desc limit 1",
                         String.class,
                         user.get("email"));
         var matcher = java.util.regex.Pattern.compile("token=([a-zA-Z0-9-]+)").matcher(html);
@@ -132,7 +132,7 @@ class StorefrontAuthReliabilityApiTest extends IntegrationTestBase {
         String html =
                 jdbc.queryForObject(
                         "select html_content from system_mail_outbox where recipient=? order by"
-                            + " created_at desc limit 1",
+                                + " created_at desc limit 1",
                         String.class,
                         user.get("email"));
         var matcher = java.util.regex.Pattern.compile("token=([a-zA-Z0-9-]+)").matcher(html);
@@ -140,7 +140,7 @@ class StorefrontAuthReliabilityApiTest extends IntegrationTestBase {
         String secret = matcher.group(1);
         jdbc.update(
                 "update access_tokens set expiry=now()-interval '1 minute' where"
-                    + " accessable_type='EmailVerification' and accessable_id=?",
+                        + " accessable_type='EmailVerification' and accessable_id=?",
                 String.valueOf(user.get("id")));
         assertThat(
                         request(
@@ -164,6 +164,75 @@ class StorefrontAuthReliabilityApiTest extends IntegrationTestBase {
                                 Boolean.class,
                                 user.get("id")))
                 .isTrue();
+    }
+
+    @Test
+    void password_reset_sends_a_single_use_email_and_revokes_existing_sessions() {
+        var auth = map(data(register()).get("auth"));
+        String email = String.valueOf(map(auth.get("user")).get("email"));
+        String session = String.valueOf(auth.get("token"));
+        assertThat(
+                        request(
+                                        HttpMethod.POST,
+                                        "/api/storefront/auth/forgot-password",
+                                        Map.of("email", email),
+                                        null)
+                                .getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        String html =
+                jdbc.queryForObject(
+                        "select html_content from system_mail_outbox where recipient=? and"
+                            + " subject='Reset your Mazeshop password'",
+                        String.class,
+                        email);
+        var matcher = java.util.regex.Pattern.compile("token=([a-zA-Z0-9-]+)").matcher(html);
+        assertThat(matcher.find()).isTrue();
+        var reset =
+                Map.of(
+                        "email",
+                        email,
+                        "token",
+                        matcher.group(1),
+                        "password",
+                        "New-test-password-2026!",
+                        "password_confirmation",
+                        "New-test-password-2026!");
+        assertThat(
+                        request(HttpMethod.POST, "/api/storefront/auth/reset-password", reset, null)
+                                .getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        assertThat(
+                        request(HttpMethod.POST, "/api/storefront/auth/reset-password", reset, null)
+                                .getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(
+                        request(HttpMethod.GET, "/api/storefront/auth/me", null, session)
+                                .getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(
+                        request(
+                                        HttpMethod.POST,
+                                        "/api/storefront/auth/login",
+                                        Map.of(
+                                                "email",
+                                                email,
+                                                "password",
+                                                "New-test-password-2026!"),
+                                        null)
+                                .getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        assertThat(
+                        request(
+                                        HttpMethod.POST,
+                                        "/api/storefront/auth/login",
+                                        Map.of(
+                                                "email",
+                                                email,
+                                                "password",
+                                                "TestOnly-password-2026!"),
+                                        null)
+                                .getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     private ResponseEntity<Map> register() {

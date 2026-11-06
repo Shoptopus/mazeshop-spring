@@ -269,11 +269,13 @@ public class AuthService {
             jdbcTemplate.update(
                     "delete from password_reset_tokens where lower(email) = lower(?)",
                     user.getEmail());
+            String resetToken = UUID.randomUUID().toString();
             jdbcTemplate.update(
                     "insert into password_reset_tokens(email, token, created_at) values (?, ?,"
                         + " now())",
                     user.getEmail(),
-                    UUID.randomUUID().toString());
+                    resetToken);
+            emailVerificationService.sendPasswordReset(user, resetToken);
         }
         return Map.of(
                 "message",
@@ -380,10 +382,20 @@ public class AuthService {
                     "Password confirmation does not match.");
         }
 
+        if (password.length() < 8)
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Use at least 8 characters for your password.",
+                    "Password is too short");
+        jdbcTemplate.queryForList(
+                "select email from password_reset_tokens where lower(email)=lower(?) and token=?"
+                    + " for update",
+                email,
+                token);
         Integer tokenCount =
                 jdbcTemplate.queryForObject(
                         "select count(*) from password_reset_tokens where lower(email)=lower(?) and"
-                            + " token=?",
+                                + " token=?",
                         Integer.class,
                         email,
                         token);
@@ -397,7 +409,7 @@ public class AuthService {
         Boolean expired =
                 jdbcTemplate.queryForObject(
                         "select created_at < (now() - interval '60 minutes') from"
-                            + " password_reset_tokens where lower(email)=lower(?) and token=?",
+                                + " password_reset_tokens where lower(email)=lower(?) and token=?",
                         Boolean.class,
                         email,
                         token);
@@ -416,7 +428,7 @@ public class AuthService {
         int updated =
                 jdbcTemplate.update(
                         "update users set password = ?, updated_at = now() where lower(email) ="
-                            + " lower(?) and deleted_at is null",
+                                + " lower(?) and deleted_at is null",
                         passwordEncoder.encode(password),
                         email);
         if (updated == 0) {
@@ -430,6 +442,10 @@ public class AuthService {
                 email,
                 token);
 
+        jdbcTemplate.update(
+                "delete from access_tokens where type=0 and accessable_type='User' and user_id in"
+                    + " (select id from users where lower(email)=lower(?))",
+                email);
         return Map.of("message", "Password successfully updated!");
     }
 
@@ -528,7 +544,7 @@ public class AuthService {
                 } else {
                     jdbcTemplate.update(
                             "insert into model_has_roles(role_id, user_id) select ?, id from users"
-                                + " where lower(email)=lower(?) on conflict do nothing",
+                                    + " where lower(email)=lower(?) on conflict do nothing",
                             roleId,
                             user.getEmail());
                 }
