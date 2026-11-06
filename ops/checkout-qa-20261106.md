@@ -1,6 +1,6 @@
 # Authentication and checkout reliability audit — 6 November 2026
 
-Fresh end-to-end audit of Mazeshop on the Raspberry Pi, using Stripe **test keys and test cards only**. The reported historical instance no longer exists; this audit cannot establish its original root cause. All timestamps below are UTC.
+Fresh end-to-end audit of Mazeshop on the Raspberry Pi, using Stripe **test keys and test cards only**. The preview gate mentioned in the audit was subsequently removed at the owner's request; see the public-access update below. The reported historical instance no longer exists; this audit cannot establish its original root cause. All timestamps below are UTC.
 
 ## Deployed implementation
 
@@ -80,3 +80,7 @@ A separate S3 read-back verified all three cancelled/refunded order records and 
 Final trusted-HTTPS smoke checks passed: anonymous access rejected, preview cookie and Bearer token coexist, admin login works, default administrator password fails, management/documentation routes are blocked, unsigned Stripe webhook returns 400 and privacy page returns 200. App, update timer and backup timer are active. Temporary diagnostic servers/tunnel/configuration were removed; the final application release remains `c7b22a9`.
 
 The installed personal skill was refreshed from the repository reference. Application changes and rebuilt assets are committed in their respective repositories; this report/runbook follow-up does not require another application restart.
+
+## Subsequent owner-requested public access
+
+On 6 November, after the checkout QA, the owner explicitly requested removal of the shop subdomain's password protection. The Apache preview include was removed from this vhost, configuration validated and Apache reloaded. Root-only rollback and current recovery copies were retained. This changes public storefront access, not application login requirements. HTTPS, management-route denial, signed payment notifications, capability-safe logging, existing noindex headers and Stripe TEST mode remain. The public configuration is included in encrypted local/S3 backups.
