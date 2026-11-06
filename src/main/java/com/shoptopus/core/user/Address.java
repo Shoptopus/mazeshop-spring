@@ -1,7 +1,9 @@
 package com.shoptopus.core.user;
 
 import com.shoptopus.core.common.jpa.SoftDeleteEntity;
+
 import jakarta.persistence.*;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,24 +26,20 @@ public class Address extends SoftDeleteEntity {
     private String slug;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Column(nullable = false)
     private String country = "UK";
 
-    @Column
-    private String name;
+    @Column private String name;
 
     @Column(name = "address_line_2")
     private String addressLine2;
 
-    @Column
-    private String note;
+    @Column private String note;
 
-    @Column
-    private String lat;
+    @Column private String lat;
 
-    @Column
-    private String lon;
+    @Column private String lon;
 }

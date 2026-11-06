@@ -1,9 +1,9 @@
 package com.shoptopus.core.storefront;
 
+import com.shoptopus.core.catalog.repository.ProductAttributeOptionRepository;
+import com.shoptopus.core.catalog.repository.ProductAttributeRepository;
 import com.shoptopus.core.common.error.ApiException;
 import com.shoptopus.core.common.i18n.TranslatedText;
-import com.shoptopus.core.catalog.repository.ProductAttributeRepository;
-import com.shoptopus.core.catalog.repository.ProductAttributeOptionRepository;
 import com.shoptopus.core.invoice.repository.InvoiceRepository;
 import com.shoptopus.core.ordering.Order;
 import com.shoptopus.core.ordering.OrderItem;
@@ -11,6 +11,7 @@ import com.shoptopus.core.ordering.repository.OrderRepository;
 import com.shoptopus.core.payment.Payment;
 import com.shoptopus.core.payment.repository.PaymentRepository;
 import com.shoptopus.core.store.Store;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,8 +38,7 @@ public class StorefrontOrderConfirmationService {
             InvoiceRepository invoiceRepository,
             PaymentRepository paymentRepository,
             ProductAttributeRepository productAttributeRepository,
-            ProductAttributeOptionRepository productAttributeOptionRepository
-    ) {
+            ProductAttributeOptionRepository productAttributeOptionRepository) {
         this.orderRepository = orderRepository;
         this.invoiceRepository = invoiceRepository;
         this.paymentRepository = paymentRepository;
@@ -48,10 +48,19 @@ public class StorefrontOrderConfirmationService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> confirmation(UUID orderId) {
-        Order order = orderRepository.findByIdAndDeletedAtIsNull(orderId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found", "Order not found"));
+        Order order =
+                orderRepository
+                        .findByIdAndDeletedAtIsNull(orderId)
+                        .orElseThrow(
+                                () ->
+                                        new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Order not found",
+                                                "Order not found"));
         var invoice = invoiceRepository.findFirstByOrderIdAndDeletedAtIsNull(orderId).orElse(null);
-        List<Payment> payments = paymentRepository.findByPayableTypeAndPayableIdAndDeletedAtIsNull("App\\Models\\Order", orderId.toString());
+        List<Payment> payments =
+                paymentRepository.findByPayableTypeAndPayableIdAndDeletedAtIsNull(
+                        "App\\Models\\Order", orderId.toString());
 
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", order.getId());
@@ -61,7 +70,11 @@ public class StorefrontOrderConfirmationService {
         row.put("currency", order.getCurrencyCode());
         row.put("total", money(order.getTotalPrice()));
         row.put("total_amount", order.getTotalPrice());
-        row.put("created_at", order.getCreatedAt() == null ? null : order.getCreatedAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        row.put(
+                "created_at",
+                order.getCreatedAt() == null
+                        ? null
+                        : order.getCreatedAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         row.put("store", storeRow(order.getStore()));
         row.put("address", invoice == null ? null : invoice.getAddress());
         row.put("delivery", invoice == null ? null : deliveryRow(invoice.getDeliveryType()));
@@ -95,40 +108,68 @@ public class StorefrontOrderConfirmationService {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", item.getProductVariant().getId());
         row.put("slug", item.getProductVariant().getSlug());
-        row.put("description", TranslatedText.resolve(item.getProductVariant().getDescription(), java.util.Locale.ENGLISH));
+        row.put(
+                "description",
+                TranslatedText.resolve(
+                        item.getProductVariant().getDescription(), java.util.Locale.ENGLISH));
         List<Map<String, Object>> attributes = new java.util.ArrayList<>();
-        Map<String, Object> normalized = new LinkedHashMap<>(storefrontShopServiceResolvedVariantOptionMap(item.getProductVariant()));
-        normalized.forEach((attributeIdValue, optionIdValue) -> {
-            UUID optionId;
-            try {
-                optionId = UUID.fromString(String.valueOf(optionIdValue));
-            } catch (IllegalArgumentException ex) {
-                return;
-            }
-            productAttributeOptionRepository.findById(optionId).ifPresent(option -> {
-                Map<String, Object> attributeRow = new LinkedHashMap<>();
-                attributeRow.put("attribute_id", option.getProductAttribute() == null ? null : option.getProductAttribute().getId());
-                attributeRow.put("attribute_name", option.getProductAttribute() == null ? null : TranslatedText.resolve(option.getProductAttribute().getName(), java.util.Locale.ENGLISH));
-                attributeRow.put("option_id", option.getId());
-                attributeRow.put("option_name", TranslatedText.resolve(option.getName(), java.util.Locale.ENGLISH));
-                attributeRow.put("option_value", option.getValue());
-                attributes.add(attributeRow);
-            });
-        });
+        Map<String, Object> normalized =
+                new LinkedHashMap<>(
+                        storefrontShopServiceResolvedVariantOptionMap(item.getProductVariant()));
+        normalized.forEach(
+                (attributeIdValue, optionIdValue) -> {
+                    UUID optionId;
+                    try {
+                        optionId = UUID.fromString(String.valueOf(optionIdValue));
+                    } catch (IllegalArgumentException ex) {
+                        return;
+                    }
+                    productAttributeOptionRepository
+                            .findById(optionId)
+                            .ifPresent(
+                                    option -> {
+                                        Map<String, Object> attributeRow = new LinkedHashMap<>();
+                                        attributeRow.put(
+                                                "attribute_id",
+                                                option.getProductAttribute() == null
+                                                        ? null
+                                                        : option.getProductAttribute().getId());
+                                        attributeRow.put(
+                                                "attribute_name",
+                                                option.getProductAttribute() == null
+                                                        ? null
+                                                        : TranslatedText.resolve(
+                                                                option.getProductAttribute()
+                                                                        .getName(),
+                                                                java.util.Locale.ENGLISH));
+                                        attributeRow.put("option_id", option.getId());
+                                        attributeRow.put(
+                                                "option_name",
+                                                TranslatedText.resolve(
+                                                        option.getName(),
+                                                        java.util.Locale.ENGLISH));
+                                        attributeRow.put("option_value", option.getValue());
+                                        attributes.add(attributeRow);
+                                    });
+                });
         row.put("attributes", attributes);
         return row;
     }
 
-    private Map<String, Object> storefrontShopServiceResolvedVariantOptionMap(com.shoptopus.core.catalog.ProductVariant variant) {
+    private Map<String, Object> storefrontShopServiceResolvedVariantOptionMap(
+            com.shoptopus.core.catalog.ProductVariant variant) {
         Map<String, Object> map = variant.attributeOptionsAsMap();
         if (!map.isEmpty()) {
             Map<String, Object> normalized = new LinkedHashMap<>();
-            map.forEach((attributeRef, optionRef) -> {
-                var option = resolveAttributeOption(attributeRef, optionRef);
-                if (option != null && option.getProductAttribute() != null) {
-                    normalized.put(option.getProductAttribute().getId().toString(), option.getId().toString());
-                }
-            });
+            map.forEach(
+                    (attributeRef, optionRef) -> {
+                        var option = resolveAttributeOption(attributeRef, optionRef);
+                        if (option != null && option.getProductAttribute() != null) {
+                            normalized.put(
+                                    option.getProductAttribute().getId().toString(),
+                                    option.getId().toString());
+                        }
+                    });
             if (!normalized.isEmpty()) {
                 return normalized;
             }
@@ -141,16 +182,22 @@ public class StorefrontOrderConfirmationService {
             } catch (IllegalArgumentException ex) {
                 continue;
             }
-            productAttributeOptionRepository.findById(optionId).ifPresent(option -> {
-                if (option.getProductAttribute() != null) {
-                    normalized.put(option.getProductAttribute().getId().toString(), option.getId().toString());
-                }
-            });
+            productAttributeOptionRepository
+                    .findById(optionId)
+                    .ifPresent(
+                            option -> {
+                                if (option.getProductAttribute() != null) {
+                                    normalized.put(
+                                            option.getProductAttribute().getId().toString(),
+                                            option.getId().toString());
+                                }
+                            });
         }
         return normalized;
     }
 
-    private com.shoptopus.core.catalog.ProductAttributeOption resolveAttributeOption(Object attributeRef, Object optionRef) {
+    private com.shoptopus.core.catalog.ProductAttributeOption resolveAttributeOption(
+            Object attributeRef, Object optionRef) {
         String attributeKey = attributeRef == null ? null : String.valueOf(attributeRef);
         String optionKey = optionRef == null ? null : String.valueOf(optionRef);
         if (optionKey == null || optionKey.isBlank()) {
@@ -165,8 +212,13 @@ public class StorefrontOrderConfirmationService {
         if (attribute == null) {
             return null;
         }
-        return productAttributeOptionRepository.findByProductAttributeIdAndDeletedAtIsNullAndEnabledTrue(attribute.getId()).stream()
-                .filter(option -> optionKey.equalsIgnoreCase(option.getSlug()) || optionKey.equalsIgnoreCase(option.getValue()))
+        return productAttributeOptionRepository
+                .findByProductAttributeIdAndDeletedAtIsNullAndEnabledTrue(attribute.getId())
+                .stream()
+                .filter(
+                        option ->
+                                optionKey.equalsIgnoreCase(option.getSlug())
+                                        || optionKey.equalsIgnoreCase(option.getValue()))
                 .findFirst()
                 .orElse(null);
     }
@@ -247,7 +299,8 @@ public class StorefrontOrderConfirmationService {
         }
         return switch (status) {
             case 1 -> "Paid";
-            case 2 -> "Refunded";
+            case 2 -> "Failed";
+            case 3 -> "Refunded";
             default -> "Pending";
         };
     }

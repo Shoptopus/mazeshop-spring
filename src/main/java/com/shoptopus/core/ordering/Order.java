@@ -5,7 +5,9 @@ import com.shoptopus.core.delivery.DeliveryType;
 import com.shoptopus.core.store.Store;
 import com.shoptopus.core.user.Address;
 import com.shoptopus.core.user.User;
+
 import jakarta.persistence.*;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -30,6 +32,12 @@ public class Order extends SoftDeleteEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    @Column(name = "contact_email")
+    private String contactEmail;
+
+    @Column(name = "contact_name")
+    private String contactName;
 
     @Column(name = "delivery_type_id")
     private java.util.UUID deliveryTypeId;

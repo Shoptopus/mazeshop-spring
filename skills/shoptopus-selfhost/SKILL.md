@@ -19,7 +19,7 @@ The analysis baseline is commit `3f1e01322e0ff36c59473926f7d3b9523dd46602`, insp
 | --- | --- |
 | Architecture, ownership, entities, database boundaries, integrations | [architecture.md](references/architecture.md) |
 | React storefront behavior, browser routes, payloads, response shapes | [storefront-contracts.md](references/storefront-contracts.md) |
-| Pricing, cart, checkout, invoices, authentication, multistore access | [commerce-and-access.md](references/commerce-and-access.md) |
+| Pricing, cart, checkout, invoices, authentication, multistore access | [commerce-and-access.md](references/commerce-and-access.md), then [checkout-reliability.md](references/checkout-reliability.md) for the 6 November reliability revision |
 | Local setup, Maven profiles, frontend builds, migrations, test selection, snapshots | [development.md](references/development.md) |
 | Raspberry Pi hosting, verified GitHub releases, HTTPS, both-database backups | [hosting.md](references/hosting.md) |
 | Existing defects, operational limitations, evidence and validation gaps | [findings.md](references/findings.md) |

@@ -6,10 +6,10 @@ import com.shoptopus.core.auth.dto.AuthPayloadDto;
 import com.shoptopus.core.auth.dto.AuthUserDto;
 import com.shoptopus.core.auth.dto.LoginRequest;
 import com.shoptopus.core.auth.dto.RegisterRequest;
-import com.shoptopus.core.cart.CartItem;
 import com.shoptopus.core.auth.security.AccessTokenRepository;
 import com.shoptopus.core.auth.security.JwtService;
 import com.shoptopus.core.cart.Cart;
+import com.shoptopus.core.cart.CartItem;
 import com.shoptopus.core.cart.repository.CartItemRepository;
 import com.shoptopus.core.cart.repository.CartRepository;
 import com.shoptopus.core.common.error.ApiException;
@@ -20,6 +20,7 @@ import com.shoptopus.core.store.repository.StoreRepository;
 import com.shoptopus.core.user.User;
 import com.shoptopus.core.user.UserService;
 import com.shoptopus.core.user.repository.UserRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,6 +54,7 @@ public class AuthService {
     private final UserService userService;
     private final JdbcTemplate jdbcTemplate;
     private final AdminInviteMailService adminInviteMailService;
+    private final EmailVerificationService emailVerificationService;
     private final AdminStoreContext adminStoreContext;
     private final StoreRepository storeRepository;
     private final AdminRoleScopeService adminRoleScopeService;
@@ -68,10 +70,10 @@ public class AuthService {
             UserService userService,
             JdbcTemplate jdbcTemplate,
             AdminInviteMailService adminInviteMailService,
+            EmailVerificationService emailVerificationService,
             AdminStoreContext adminStoreContext,
             StoreRepository storeRepository,
-            AdminRoleScopeService adminRoleScopeService
-    ) {
+            AdminRoleScopeService adminRoleScopeService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -82,6 +84,7 @@ public class AuthService {
         this.userService = userService;
         this.jdbcTemplate = jdbcTemplate;
         this.adminInviteMailService = adminInviteMailService;
+        this.emailVerificationService = emailVerificationService;
         this.adminStoreContext = adminStoreContext;
         this.storeRepository = storeRepository;
         this.adminRoleScopeService = adminRoleScopeService;
@@ -89,10 +92,16 @@ public class AuthService {
 
     @Transactional("mainTransactionManager")
     public AuthPayloadDto register(RegisterRequest request) {
-        if (request.passwordConfirmation() != null && !request.passwordConfirmation().equals(request.password())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Password confirmation does not match");
+        if (request.passwordConfirmation() != null
+                && !request.passwordConfirmation().equals(request.password())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation failed",
+                    "Password confirmation does not match");
         }
-        if (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(request.email()).isPresent()) {
+        if (userRepository
+                .findByEmailIgnoreCaseAndDeletedAtIsNull(request.email().trim())
+                .isPresent()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Email already in use", "User exists");
         }
 
@@ -100,10 +109,10 @@ public class AuthService {
         user.setFirstName(request.firstName());
         user.setLastName(request.lastName());
         user.setName(request.firstName() + " " + request.lastName());
-        user.setEmail(request.email().toLowerCase());
+        user.setEmail(request.email().trim().toLowerCase(java.util.Locale.ROOT));
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setSlug(slugify(user.getName()));
-        user.setEmailVerifiedAt(OffsetDateTime.now());
+        user.setEmailVerifiedAt(null);
         user.setLastSeen(OffsetDateTime.now());
         userRepository.save(user);
         userRepository.flush();
@@ -114,25 +123,31 @@ public class AuthService {
                 Map.of(
                         "message", user.getName() + " created an account.",
                         "user_id", user.getId(),
-                        "email", user.getEmail()
-                )
-        );
+                        "email", user.getEmail()));
 
+        emailVerificationService.send(user);
         return issueToken(user);
     }
 
     @Transactional("mainTransactionManager")
     public AuthPayloadDto login(LoginRequest request) {
-        var user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(request.email())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                        "Incorrect email or password. Please try again.",
-                        "User not found."));
+        var user =
+                userRepository
+                        .findByEmailIgnoreCaseAndDeletedAtIsNull(request.email())
+                        .orElseThrow(
+                                () ->
+                                        new ApiException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "Incorrect email or password. Please try again.",
+                                                "User not found."));
 
         if (user.getPassword() == null || user.getPassword().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Please reset your password.", "User has no password");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Please reset your password.", "User has no password");
         }
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
                     "Incorrect email or password. Please try again.",
                     "Hash check fail");
         }
@@ -147,20 +162,26 @@ public class AuthService {
     @Transactional("mainTransactionManager")
     public AuthPayloadDto socialLogin(String email, String firstName, String lastName) {
         if (email == null || email.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Email is required.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Validation failed", "Email is required.");
         }
-        User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email).orElseGet(() -> {
-            User created = new User();
-            created.setFirstName(defaultName(firstName, "Customer"));
-            created.setLastName(defaultName(lastName, "User"));
-            created.setName(created.getFirstName() + " " + created.getLastName());
-            created.setEmail(email.toLowerCase());
-            created.setPassword("");
-            created.setSlug(slugify(created.getName()));
-            created.setEmailVerifiedAt(OffsetDateTime.now());
-            created.setLastSeen(OffsetDateTime.now());
-            return userRepository.save(created);
-        });
+        User user =
+                userRepository
+                        .findByEmailIgnoreCaseAndDeletedAtIsNull(email)
+                        .orElseGet(
+                                () -> {
+                                    User created = new User();
+                                    created.setFirstName(defaultName(firstName, "Customer"));
+                                    created.setLastName(defaultName(lastName, "User"));
+                                    created.setName(
+                                            created.getFirstName() + " " + created.getLastName());
+                                    created.setEmail(email.toLowerCase());
+                                    created.setPassword("");
+                                    created.setSlug(slugify(created.getName()));
+                                    created.setEmailVerifiedAt(OffsetDateTime.now());
+                                    created.setLastSeen(OffsetDateTime.now());
+                                    return userRepository.save(created);
+                                });
 
         boolean changed = false;
         if (user.getFirstName() == null || user.getFirstName().isBlank()) {
@@ -171,7 +192,10 @@ public class AuthService {
             user.setLastName(defaultName(lastName, "User"));
             changed = true;
         }
-        String fullName = defaultName(user.getFirstName(), "Customer") + " " + defaultName(user.getLastName(), "User");
+        String fullName =
+                defaultName(user.getFirstName(), "Customer")
+                        + " "
+                        + defaultName(user.getLastName(), "User");
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(fullName);
             changed = true;
@@ -198,87 +222,98 @@ public class AuthService {
     }
 
     public AuthUserDto me(String email) {
-        var user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found", "User not found"));
+        var user =
+                userRepository
+                        .findByEmailIgnoreCaseAndDeletedAtIsNull(email)
+                        .orElseThrow(
+                                () ->
+                                        new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "User not found",
+                                                "User not found"));
         return toAuthUser(user);
     }
 
     @Transactional("mainTransactionManager")
     public Map<String, Object> resendVerification(String email, String authenticatedEmail) {
-        if ((email == null || email.isBlank()) && authenticatedEmail != null && !authenticatedEmail.isBlank()) {
-            return Map.of("message", "Verification email re-sent.");
-        }
-        if (email == null || email.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Email is required.");
-        }
-        var user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Email does not exist."));
-        if (user.getEmailVerifiedAt() != null) {
-            return Map.of("message", "Email has been verified.");
-        }
-        return Map.of("message", "Verification email re-sent.");
+        String target =
+                authenticatedEmail != null && !authenticatedEmail.isBlank()
+                        ? authenticatedEmail
+                        : email;
+        if (target == null || target.isBlank())
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Enter your email address.", "Email is required");
+        userRepository
+                .findByEmailIgnoreCaseAndDeletedAtIsNull(target.trim())
+                .ifPresent(emailVerificationService::send);
+        return Map.of("message", "If confirmation is needed, a confirmation email has been sent.");
     }
 
-    @Transactional("mainTransactionManager")
     public Map<String, Object> verifyEmail(String id, String hash) {
-        UUID userId;
         try {
-            userId = UUID.fromString(id);
-        } catch (IllegalArgumentException ex) {
+            emailVerificationService.verify(hash);
+            return Map.of("url", "/verify?message=Email verified.&status=200");
+        } catch (ApiException ex) {
             return Map.of("url", "/verify?message=Invalid/Expired url provided.&status=401");
         }
-        var user = userRepository.findById(userId).orElse(null);
-        if (user == null || hash == null || hash.isBlank()) {
-            return Map.of("url", "/verify?message=Invalid/Expired url provided.&status=401");
-        }
-        if (!sha1(user.getEmail()).equalsIgnoreCase(hash)) {
-            return Map.of("url", "/verify?message=Invalid/Expired url provided.&status=401");
-        }
-        user.setEmailVerifiedAt(OffsetDateTime.now());
-        userRepository.save(user);
-        return Map.of("url", "/verify?message=Email verified.&status=200");
     }
 
     @Transactional("mainTransactionManager")
     public Map<String, Object> forgotPassword(String email) {
         if (email == null || email.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Email is required.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Validation failed", "Email is required.");
         }
         var user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email).orElse(null);
         if (user != null) {
-            jdbcTemplate.update("delete from password_reset_tokens where lower(email) = lower(?)", user.getEmail());
             jdbcTemplate.update(
-                    "insert into password_reset_tokens(email, token, created_at) values (?, ?, now())",
+                    "delete from password_reset_tokens where lower(email) = lower(?)",
+                    user.getEmail());
+            jdbcTemplate.update(
+                    "insert into password_reset_tokens(email, token, created_at) values (?, ?,"
+                        + " now())",
                     user.getEmail(),
-                    UUID.randomUUID().toString()
-            );
+                    UUID.randomUUID().toString());
         }
-        return Map.of("message", "If the email is in our system, we have e-mailed your password reset link!");
+        return Map.of(
+                "message",
+                "If the email is in our system, we have e-mailed your password reset link!");
     }
 
     @Transactional("mainTransactionManager")
-    public Map<String, Object> inviteSystemUser(String requesterEmail, String invitedEmail, String role) {
+    public Map<String, Object> inviteSystemUser(
+            String requesterEmail, String invitedEmail, String role) {
         if (invitedEmail == null || invitedEmail.isBlank() || role == null || role.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Email and role are required.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Validation failed", "Email and role are required.");
         }
 
-        var requester = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(requesterEmail)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Unauthenticated", "User not found"));
-        Store inviteStore = adminStoreContext.activeStoreOptional(requesterEmail).orElse(requester.getStore());
+        var requester =
+                userRepository
+                        .findByEmailIgnoreCaseAndDeletedAtIsNull(requesterEmail)
+                        .orElseThrow(
+                                () ->
+                                        new ApiException(
+                                                HttpStatus.UNAUTHORIZED,
+                                                "Unauthenticated",
+                                                "User not found"));
+        Store inviteStore =
+                adminStoreContext.activeStoreOptional(requesterEmail).orElse(requester.getStore());
 
-        if (!hasRole(requesterEmail, "super_admin", inviteStore) && !hasPermission(requesterEmail, "users.can.invite", inviteStore)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Forbidden", "This action is unauthorized.");
+        if (!hasRole(requesterEmail, "super_admin", inviteStore)
+                && !hasPermission(requesterEmail, "users.can.invite", inviteStore)) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN, "Forbidden", "This action is unauthorized.");
         }
 
         if (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(invitedEmail).isPresent()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Email already in use.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Validation failed", "Email already in use.");
         }
 
-        Integer roleCount = jdbcTemplate.queryForObject(
-                "select count(*) from roles where name = ?",
-                Integer.class,
-                role
-        );
+        Integer roleCount =
+                jdbcTemplate.queryForObject(
+                        "select count(*) from roles where name = ?", Integer.class, role);
         if (roleCount == null || roleCount == 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Role is invalid.");
         }
@@ -286,8 +321,7 @@ public class AuthService {
         jdbcTemplate.update(
                 "delete from access_tokens where type = ? and lower(content->>'email') = lower(?)",
                 SIGNUP_REQUEST_TOKEN_TYPE,
-                invitedEmail
-        );
+                invitedEmail);
 
         var accessToken = new AccessToken();
         accessToken.setType(SIGNUP_REQUEST_TOKEN_TYPE);
@@ -311,70 +345,125 @@ public class AuthService {
         var response = new java.util.LinkedHashMap<String, Object>();
         response.put("email", invitedEmail);
         response.put("role", role);
-        response.put("store", inviteStore == null ? null : Map.of(
-                "id", inviteStore.getId(),
-                "name", inviteStore.getName(),
-                "slug", inviteStore.getSlug()
-        ));
+        response.put(
+                "store",
+                inviteStore == null
+                        ? null
+                        : Map.of(
+                                "id", inviteStore.getId(),
+                                "name", inviteStore.getName(),
+                                "slug", inviteStore.getSlug()));
         response.put("invite_url", adminInviteMailService.inviteUrl(accessToken.getToken()));
         return response;
     }
 
-    @Transactional(transactionManager = "mainTransactionManager", noRollbackFor = ApiException.class)
-    public Map<String, Object> resetPassword(String email, String token, String password, String passwordConfirmation) {
-        if (email == null || email.isBlank() || token == null || token.isBlank() || password == null || password.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Email, token and password are required.");
+    @Transactional(
+            transactionManager = "mainTransactionManager",
+            noRollbackFor = ApiException.class)
+    public Map<String, Object> resetPassword(
+            String email, String token, String password, String passwordConfirmation) {
+        if (email == null
+                || email.isBlank()
+                || token == null
+                || token.isBlank()
+                || password == null
+                || password.isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation failed",
+                    "Email, token and password are required.");
         }
         if (passwordConfirmation != null && !passwordConfirmation.equals(password)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Password confirmation does not match.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation failed",
+                    "Password confirmation does not match.");
         }
 
-        Integer tokenCount = jdbcTemplate.queryForObject(
-                "select count(*) from password_reset_tokens where lower(email)=lower(?) and token=?",
-                Integer.class,
-                email,
-                token
-        );
+        Integer tokenCount =
+                jdbcTemplate.queryForObject(
+                        "select count(*) from password_reset_tokens where lower(email)=lower(?) and"
+                            + " token=?",
+                        Integer.class,
+                        email,
+                        token);
         if (tokenCount == null || tokenCount == 0) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid token", "This password reset token is invalid.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid token",
+                    "This password reset token is invalid.");
         }
 
-        Boolean expired = jdbcTemplate.queryForObject(
-                "select created_at < (now() - interval '60 minutes') from password_reset_tokens where lower(email)=lower(?) and token=?",
-                Boolean.class,
-                email,
-                token
-        );
+        Boolean expired =
+                jdbcTemplate.queryForObject(
+                        "select created_at < (now() - interval '60 minutes') from"
+                            + " password_reset_tokens where lower(email)=lower(?) and token=?",
+                        Boolean.class,
+                        email,
+                        token);
 
         if (Boolean.TRUE.equals(expired)) {
-            jdbcTemplate.update("delete from password_reset_tokens where lower(email)=lower(?) and token=?", email, token);
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Token expired", "This password reset token has expired.");
+            jdbcTemplate.update(
+                    "delete from password_reset_tokens where lower(email)=lower(?) and token=?",
+                    email,
+                    token);
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Token expired",
+                    "This password reset token has expired.");
         }
 
-        int updated = jdbcTemplate.update(
-                "update users set password = ?, updated_at = now() where lower(email) = lower(?) and deleted_at is null",
-                passwordEncoder.encode(password),
-                email
-        );
+        int updated =
+                jdbcTemplate.update(
+                        "update users set password = ?, updated_at = now() where lower(email) ="
+                            + " lower(?) and deleted_at is null",
+                        passwordEncoder.encode(password),
+                        email);
         if (updated == 0) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid token", "This password reset token is invalid.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid token",
+                    "This password reset token is invalid.");
         }
-        jdbcTemplate.update("delete from password_reset_tokens where lower(email)=lower(?) and token=?", email, token);
+        jdbcTemplate.update(
+                "delete from password_reset_tokens where lower(email)=lower(?) and token=?",
+                email,
+                token);
 
         return Map.of("message", "Password successfully updated!");
     }
 
-    public AuthPayloadDto registerByInvite(String token, String firstName, String lastName, String password, String passwordConfirmation) {
-        if (firstName == null || firstName.isBlank() || lastName == null || lastName.isBlank() || password == null || password.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "First name, last name and password are required.");
+    public AuthPayloadDto registerByInvite(
+            String token,
+            String firstName,
+            String lastName,
+            String password,
+            String passwordConfirmation) {
+        if (firstName == null
+                || firstName.isBlank()
+                || lastName == null
+                || lastName.isBlank()
+                || password == null
+                || password.isBlank()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation failed",
+                    "First name, last name and password are required.");
         }
         if (passwordConfirmation != null && !passwordConfirmation.equals(password)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Password confirmation does not match.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Validation failed",
+                    "Password confirmation does not match.");
         }
 
         var accessToken = accessTokenRepository.findByToken(token).orElse(null);
-        if (accessToken == null || accessToken.getType() != SIGNUP_REQUEST_TOKEN_TYPE || accessToken.getExpiry() == null || accessToken.getExpiry().isBefore(OffsetDateTime.now())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid token", "Invalid or expired token.");
+        if (accessToken == null
+                || accessToken.getType() != SIGNUP_REQUEST_TOKEN_TYPE
+                || accessToken.getExpiry() == null
+                || accessToken.getExpiry().isBefore(OffsetDateTime.now())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Invalid token", "Invalid or expired token.");
         }
 
         String invitedEmail = null;
@@ -389,10 +478,12 @@ public class AuthService {
             invitedStoreId = storeVal == null ? null : String.valueOf(storeVal);
         }
         if (invitedEmail == null || invitedEmail.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid token", "Invalid or expired token.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Invalid token", "Invalid or expired token.");
         }
         if (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(invitedEmail).isPresent()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation failed", "Email already in use.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST, "Validation failed", "Email already in use.");
         }
 
         var user = new User();
@@ -416,31 +507,30 @@ public class AuthService {
         ensureCart(user);
 
         if (role != null && !role.isBlank()) {
-            Integer roleId = jdbcTemplate.query(
-                    "select id from roles where name = ? limit 1",
-                    rs -> rs.next() ? rs.getInt(1) : null,
-                    role
-            );
+            Integer roleId =
+                    jdbcTemplate.query(
+                            "select id from roles where name = ? limit 1",
+                            rs -> rs.next() ? rs.getInt(1) : null,
+                            role);
             if (roleId != null) {
                 if (invitedStoreId != null && !invitedStoreId.isBlank()) {
-                    jdbcTemplate.update("""
-                                    insert into user_store_roles(role_id, user_id, store_id)
-                                    select ?, id, ?::uuid
-                                    from users
-                                    where lower(email)=lower(?)
-                                    on conflict do nothing
-                                    """,
+                    jdbcTemplate.update(
+                            """
+                            insert into user_store_roles(role_id, user_id, store_id)
+                            select ?, id, ?::uuid
+                            from users
+                            where lower(email)=lower(?)
+                            on conflict do nothing
+                            """,
                             roleId,
                             invitedStoreId,
-                            user.getEmail()
-                    );
+                            user.getEmail());
                 } else {
                     jdbcTemplate.update(
-                            "insert into model_has_roles(role_id, user_id) " +
-                                    "select ?, id from users where lower(email)=lower(?) on conflict do nothing",
+                            "insert into model_has_roles(role_id, user_id) select ?, id from users"
+                                + " where lower(email)=lower(?) on conflict do nothing",
                             roleId,
-                            user.getEmail()
-                    );
+                            user.getEmail());
                 }
             }
         }
@@ -473,8 +563,7 @@ public class AuthService {
                 user.getEmailVerifiedAt() != null,
                 cartPayload(user),
                 unreadNotifications(user),
-                favoriteProductIds(user)
-        );
+                favoriteProductIds(user));
     }
 
     private Map<String, Object> cartPayload(User user) {
@@ -484,23 +573,26 @@ public class AuthService {
         payload.put("user_id", user.getId());
         payload.put("ip_address", cart.getIpAddress());
         payload.put("user", user.getId());
-        payload.put("products", jdbcTemplate.query(
-                """
+        payload.put(
+                "products",
+                jdbcTemplate.query(
+                        """
                         select product_id, product_variant_id, customization_value, quantity
                         from cart_product
                         where cart_id = ?
                         order by created_at asc
                         """,
-                (rs, rowNum) -> {
-                    var row = new java.util.LinkedHashMap<String, Object>();
-                    row.put("product_id", rs.getObject("product_id", UUID.class));
-                    row.put("product_variant_id", rs.getObject("product_variant_id", UUID.class));
-                    row.put("customization_value", rs.getString("customization_value"));
-                    row.put("quantity", rs.getLong("quantity"));
-                    return row;
-                },
-                cart.getId()
-        ));
+                        (rs, rowNum) -> {
+                            var row = new java.util.LinkedHashMap<String, Object>();
+                            row.put("product_id", rs.getObject("product_id", UUID.class));
+                            row.put(
+                                    "product_variant_id",
+                                    rs.getObject("product_variant_id", UUID.class));
+                            row.put("customization_value", rs.getString("customization_value"));
+                            row.put("quantity", rs.getLong("quantity"));
+                            return row;
+                        },
+                        cart.getId()));
         return payload;
     }
 
@@ -516,9 +608,19 @@ public class AuthService {
 
         for (CartItem sourceItem : cartItemRepository.findByCartId(sourceCart.getId())) {
             UUID sourceProductId = sourceItem.getProduct().getId();
-            UUID sourceVariantId = sourceItem.getProductVariant() == null ? null : sourceItem.getProductVariant().getId();
+            UUID sourceVariantId =
+                    sourceItem.getProductVariant() == null
+                            ? null
+                            : sourceItem.getProductVariant().getId();
 
-            var existing = cartItemRepository.findLineItem(userCart.getId(), sourceProductId, sourceVariantId, sourceItem.getCustomizationValue()).orElse(null);
+            var existing =
+                    cartItemRepository
+                            .findLineItem(
+                                    userCart.getId(),
+                                    sourceProductId,
+                                    sourceVariantId,
+                                    sourceItem.getCustomizationValue())
+                            .orElse(null);
             if (existing != null) {
                 existing.setQuantity(existing.getQuantity() + sourceItem.getQuantity());
                 cartItemRepository.save(existing);
@@ -540,11 +642,11 @@ public class AuthService {
     private java.util.List<Map<String, Object>> unreadNotifications(User user) {
         return jdbcTemplate.query(
                 """
-                        select id, type, title
-                        from notifications
-                        where user_id = ? and read_at is null
-                        order by created_at desc
-                        """,
+                select id, type, title
+                from notifications
+                where user_id = ? and read_at is null
+                order by created_at desc
+                """,
                 (rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("id", rs.getObject("id", UUID.class));
@@ -553,16 +655,15 @@ public class AuthService {
                     row.put("data", Collections.emptyMap());
                     return row;
                 },
-                user.getId()
-        );
+                user.getId());
     }
 
     private List<UUID> favoriteProductIds(User user) {
-        return List.copyOf(jdbcTemplate.queryForList(
-                "select product_id from favorited_products where user_id = ?",
-                UUID.class,
-                user.getId()
-        ));
+        return List.copyOf(
+                jdbcTemplate.queryForList(
+                        "select product_id from favorited_products where user_id = ?",
+                        UUID.class,
+                        user.getId()));
     }
 
     @SuppressWarnings("unchecked")
@@ -596,12 +697,15 @@ public class AuthService {
     }
 
     private Cart ensureCart(User user) {
-        return cartRepository.findTopByUserIdOrderByCreatedAtDesc(user.getId()).orElseGet(() -> {
-            Cart cart = new Cart();
-            cart.setUser(user);
-            cart.setSlug("cart-" + UUID.randomUUID());
-            return cartRepository.save(cart);
-        });
+        return cartRepository
+                .findTopByUserIdOrderByCreatedAtDesc(user.getId())
+                .orElseGet(
+                        () -> {
+                            Cart cart = new Cart();
+                            cart.setUser(user);
+                            cart.setSlug("cart-" + UUID.randomUUID());
+                            return cartRepository.save(cart);
+                        });
     }
 
     private String slugify(String input) {
@@ -618,7 +722,8 @@ public class AuthService {
             byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (Exception ex) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error", ex.getMessage());
+            throw new ApiException(
+                    HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error", ex.getMessage());
         }
     }
 

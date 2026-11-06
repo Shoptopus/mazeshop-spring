@@ -1,9 +1,11 @@
 package com.shoptopus.core.logging;
 
-import com.shoptopus.core.adminui.AdminStoreContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shoptopus.core.adminui.AdminStoreContext;
 import com.shoptopus.core.logging.repository.EventLogRepository;
+
 import jakarta.servlet.http.HttpServletRequest;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -22,10 +24,17 @@ public class ApiLoggingAspect {
     private final ObjectMapper objectMapper;
     private final AdminStoreContext adminStoreContext;
 
-    public ApiLoggingAspect(EventLogRepository eventLogRepository, ObjectMapper objectMapper, AdminStoreContext adminStoreContext) {
+    public ApiLoggingAspect(
+            EventLogRepository eventLogRepository,
+            ObjectMapper objectMapper,
+            AdminStoreContext adminStoreContext) {
         this.eventLogRepository = eventLogRepository;
         this.objectMapper = objectMapper;
         this.adminStoreContext = adminStoreContext;
+    }
+
+    private String safePath(String path) {
+        return path.replaceAll("(/api/storefront/invoice/)[^/]+", "$1[redacted]");
     }
 
     @Around("within(@org.springframework.web.bind.annotation.RestController *)")
@@ -55,8 +64,15 @@ public class ApiLoggingAspect {
 
             var payload = new HashMap<String, Object>();
             payload.put("method", request == null ? null : request.getMethod());
-            payload.put("path", request == null ? null : request.getRequestURI());
-            payload.put("query", request == null ? null : request.getQueryString());
+            payload.put("path", request == null ? null : safePath(request.getRequestURI()));
+            payload.put(
+                    "query",
+                    request == null
+                            ? null
+                            : request.getParameterMap().keySet().stream()
+                                    .sorted()
+                                    .map(key -> key + "=[redacted]")
+                                    .collect(java.util.stream.Collectors.joining("&")));
             payload.put("durationMs", durationMs);
             payload.put("controller", pjp.getSignature().toShortString());
             payload.put("status", failure == null ? "success" : "failure");
@@ -65,7 +81,10 @@ public class ApiLoggingAspect {
             }
 
             var event = new EventLog();
-            event.setMessage((request == null ? "API" : request.getMethod()) + " " + (request == null ? "" : request.getRequestURI()));
+            event.setMessage(
+                    (request == null ? "API" : request.getMethod())
+                            + " "
+                            + (request == null ? "" : safePath(request.getRequestURI())));
             event.setType(failure == null ? 0 : 1);
             event.setEventableType("http_request");
             event.setEventableId(request == null ? null : request.getHeader("X-Request-Id"));

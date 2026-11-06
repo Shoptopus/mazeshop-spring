@@ -12,10 +12,12 @@ if [ ! -d "$APP_DIR" ]; then
 fi
 
 if [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
-  # Keep the frontend build on the expected Node runtime when nvm is available.
+  # Prefer Node 20 when installed; otherwise retain the selected Node runtime.
   # shellcheck disable=SC1090
   . "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
-  nvm use 20 >/dev/null
+  if nvm version 20 >/dev/null 2>&1; then
+    nvm use 20 >/dev/null
+  fi
 fi
 
 mkdir -p "$TARGET_DIR"
