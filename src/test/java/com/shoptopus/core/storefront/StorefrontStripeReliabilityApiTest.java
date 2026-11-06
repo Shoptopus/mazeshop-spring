@@ -228,7 +228,7 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         // test's receipt so the batch-size boundary cannot hide its delivery attempt.
         jdbc.update(
                 "update system_mail_outbox set created_at=timestamp with time zone '2000-01-01"
-                    + " 00:00:00+00' where recipient=?",
+                        + " 00:00:00+00' where recipient=?",
                 map(body.get("contact")).get("email"));
         outbox.processOnce();
         assertThat(orderStatus(prepared)).isEqualTo(1);
@@ -259,6 +259,15 @@ class StorefrontStripeReliabilityApiTest extends IntegrationTestBase {
         var prepared = prepare(body);
         assertThat(submit(body, prepared).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(orderStatus(prepared)).isZero();
+        var confirmation =
+                request(
+                        HttpMethod.GET,
+                        "/api/storefront/orders/" + prepared.get("order_id") + "/confirmation",
+                        null,
+                        null,
+                        String.valueOf(prepared.get("order_access_token")));
+        assertThat(confirmation.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(data(confirmation).get("checkout_status")).isEqualTo("requires_payment_method");
         var cancel =
                 Map.of(
                         "order_id",

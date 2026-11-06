@@ -35,9 +35,11 @@ public class StorefrontOrderConfirmationController {
             @RequestHeader(value = "X-Order-Access", required = false) String token) {
         access.requireAccess(
                 orderId, authentication == null ? null : authentication.getName(), token);
-        checkout.reconcileOrder(orderId);
-        return ApiResponse.ok(
-                "Storefront order confirmation",
-                storefrontOrderConfirmationService.confirmation(orderId));
+        String providerStatus = checkout.reconcileOrder(orderId);
+        var response =
+                new java.util.LinkedHashMap<>(
+                        storefrontOrderConfirmationService.confirmation(orderId));
+        response.put("checkout_status", providerStatus);
+        return ApiResponse.ok("Storefront order confirmation", response);
     }
 }

@@ -286,11 +286,13 @@ public class StorefrontOrderConfirmationService {
             if (stripe instanceof Map<?, ?> stripeMap) {
                 Object paymentMethodId = stripeMap.get("payment_method_id");
                 if (paymentMethodId != null) {
-                    return "Stripe " + paymentMethodId;
+                    return "Stripe";
                 }
             }
         }
-        return payment.getMethodRef();
+        return "stripe".equalsIgnoreCase(paymentProvider(payment))
+                ? "Stripe"
+                : payment.getMethodRef();
     }
 
     private String paymentStatusLabel(Integer status) {

@@ -722,8 +722,8 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                 });
     }
 
-    public void reconcileOrder(UUID orderId) {
-        checkoutTx.executeWithoutResult(
+    public String reconcileOrder(UUID orderId) {
+        return checkoutTx.execute(
                 s -> {
                     var rows =
                             jdbc.queryForList(
@@ -731,7 +731,17 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                                             + " storefront_checkout_attempts where order_id=? and"
                                             + " status='pending' for update",
                                     orderId);
-                    if (rows.isEmpty()) return;
+                    if (rows.isEmpty()) {
+                        var completed =
+                                jdbc.queryForList(
+                                        "select status from storefront_checkout_attempts where"
+                                            + " order_id=?",
+                                        orderId);
+                        if (completed.isEmpty()) return "unknown";
+                        return "paid".equals(completed.get(0).get("status"))
+                                ? "succeeded"
+                                : "canceled";
+                    }
                     var row = rows.get(0);
                     var stripe =
                             stripePaymentGateway.paymentIntent(
@@ -741,6 +751,7 @@ values(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,now()+interval '30 minutes')
                     else if (Boolean.TRUE.equals(row.get("expired"))
                             || "canceled".equals(stripe.status()))
                         cancelAttempt(row, Locale.ENGLISH);
+                    return stripe.status();
                 });
     }
 
