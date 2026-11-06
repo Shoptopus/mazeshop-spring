@@ -1,5 +1,7 @@
 # Commerce and access behavior
 
+The 6 November authentication/checkout implementation and provider QA supersede the relevant baseline observations below. Read [checkout-reliability.md](checkout-reliability.md) before acting on purchase, guest access, tokens, frontend source or error handling findings. Other observations still require source verification.
+
 ## Cart identity and lifecycle
 
 Sources: `storefront/StorefrontCartService.java`, `cart/Cart.java`, `cart/CartItem.java`, and `cart/repository/CartItemRepository.java`.

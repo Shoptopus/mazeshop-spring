@@ -1,5 +1,7 @@
 # Raspberry Pi hosting and releases
 
+For current Mazeshop Stripe TEST configuration and the exact public signed-webhook exception, read [checkout-reliability.md](checkout-reliability.md). It supersedes earlier payment-disabled/checkout-blocker observations in this hosting baseline.
+
 Read `ops/raspberry-pi/README.md` in the project checkout for the installed design and operational procedures. The scripts under that directory and `.github/workflows/pi-release.yml` are the editable sources. Private host audits, credentials, recovery keys and AWS access keys belong outside the public repository.
 
 The deployment repository is `Shoptopus/mazeshop-spring` (a separate public copy; the original repository stays private). GitHub-hosted runners build and test with Java 21, publish the existing tracked React bundles inside the JAR, and produce a signed provenance bundle. The Pi polls public releases and verifies the exact repository, workflow identity, main ref and source digest before running the JAR as the unprivileged application user. It does not run a self-hosted GitHub runner or expose deployment SSH publicly. Do not weaken provenance checks to fix a failing deployment. Only the selected public deployment repository may publish builds; keep the verifier repository and exact certificate identity aligned with its `pi-release.yml` workflow on main. Inspect the latest Actions run before assuming deployment succeeded.

@@ -1,11 +1,11 @@
 ---
 name: shoptopus-selfhost
-description: Develop, debug, review, and test the Shoptopus self-hosted Spring Boot e-commerce backend and its React storefront integration. Use for work in shoptopus-selfhost, its API contracts, multistore permissions, checkout, content/media, and frontend packaging.
+description: Develop, debug, review, and test the Shoptopus self-hosted Spring Boot e-commerce backend and its React storefront integration. Use for work in mazeshop-spring, shoptopus-selfhost, their API contracts, multistore permissions, checkout, content/media, and frontend packaging.
 ---
 
 # Shoptopus Selfhost
 
-Use this skill to make changes that fit the existing Shoptopus application and preserve its client contracts. It covers the self-hosted distribution, whose default Maven build differs from the older `shoptopus-spring` checkout.
+Use this skill to make changes that fit the existing Shoptopus application and preserve its client contracts. It covers the self-hosted distribution and its `mazeshop-spring` deployment fork, whose default Maven build differs from the older `shoptopus-spring` checkout.
 
 ## Establish the checkout
 

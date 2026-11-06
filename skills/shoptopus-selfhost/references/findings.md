@@ -1,5 +1,7 @@
 # Analysis findings and validation limits
 
+The 6 November authentication/checkout implementation and provider QA supersede the relevant baseline observations below. Read [checkout-reliability.md](checkout-reliability.md) before acting on purchase, guest access, tokens, frontend source or error handling findings. Other observations still require source verification.
+
 ## How to use this reference
 
 These findings describe static source/bundle inspection at commit `3f1e01322e0ff36c59473926f7d3b9523dd46602` on 2026-11-05. They are not results of a penetration test or a full integration run. Source paths are relative to the project root. Reconfirm a finding before changing code; use the requested task to decide whether remediation belongs in scope.

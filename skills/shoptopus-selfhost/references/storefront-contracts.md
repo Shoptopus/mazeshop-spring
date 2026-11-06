@@ -1,5 +1,7 @@
 # React storefront contracts
 
+The 6 November authentication/checkout implementation and provider QA supersede the relevant baseline observations below. Read [checkout-reliability.md](checkout-reliability.md) before acting on purchase, guest access, tokens, frontend source or error handling findings. Other observations still require source verification.
+
 ## What was actually inspected
 
 The selfhost checkout contains compiled React storefront and admin assets, not their editable React source trees, dependency lockfiles, or frontend tests. The scripts expect `../shoptopus-spring-storefront` and `../shoptopus-spring-admin`, with directory overrides described in development. Those checkouts were absent during this analysis, and the connected GitHub lookup did not expose the storefront repository.

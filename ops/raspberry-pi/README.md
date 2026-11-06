@@ -22,11 +22,11 @@ During deployment, Apache serves maintenance responses, a complete backup is tak
 
 The storefront and `/studio` are protected by a temporary Apache preview login. A Secure, HttpOnly cookie allows authenticated frontend requests to carry the app's Bearer token without conflicting with Basic authentication. Changing the preview password alone does not revoke existing preview cookies: rotate the random cookie secret in the root-only Apache gate configuration as well, then reload Apache.
 
-Payment providers are disabled. Configure and verify mail delivery through the shop settings before launch. Keep the preview gate until payment confirmation, order access, cart ownership and token revocation concerns described in the project findings are addressed, and real payment/email settings are verified. Never expose the seeded `password123` administrator password; the initial installation replaces it before enabling the proxy.
+As of 6 November 2026, Gmail is connected and Stripe is enabled with TEST keys; other payment providers remain disabled. The authentication/checkout reliability revision and actual provider QA are recorded in [the checkout report](../checkout-qa-20261106.md). Keep the preview gate until live keys, a matching live webhook/signing secret and commercial delivery settings are reviewed. The current webhook-secret environment override is for TEST events. Never expose the seeded `password123` administrator password; the initial installation replaces it before enabling the proxy.
 
 ## Public privacy notice
 
-`/privacy-policy` is a standalone HTML page packaged from `src/main/resources/legal/privacy-policy.html` and served by `PrivacyPolicyController`. It loads no SPA assets or third-party scripts. The Pi Apache site grants anonymous access only to the exact `/privacy-policy` route (optional trailing slash); the preview gate still protects the rest of the application. Keep that exception specific when changing proxy configuration. Use `https://shop.mazeshop.co.uk/privacy-policy` in Google OAuth branding.
+`/privacy-policy` is a standalone HTML page packaged from `src/main/resources/legal/privacy-policy.html` and served by `PrivacyPolicyController`. It loads no SPA assets or third-party scripts. The Pi Apache site grants anonymous access to the exact `/privacy-policy` route (optional trailing slash) and exact `/api/storefront/checkout/stripe/webhook` route. The webhook requires a valid Stripe signature; unsigned requests receive 400. The preview gate protects the rest of the application. Access logging omits request targets and referrers so capability query values are not recorded. Keep that exception specific when changing proxy configuration. Use `https://shop.mazeshop.co.uk/privacy-policy` in Google OAuth branding.
 
 The notice identifies Fluentech LTD (14380150) using its Companies House registered office and `mazeshopsales@gmail.com` as the privacy contact. Review its data uses and retention commitments whenever providers, marketing, storage or operating practices change. It is a privacy notice, not a returns or warranty policy.
 
@@ -60,7 +60,7 @@ sudo systemctl start shoptopus-backup.service
 sudo systemctl start shoptopus-backup-check.service
 ```
 
-For restic operations, use a root shell, export `/etc/shoptopus/restic.env`, and additionally `/etc/shoptopus/s3.env` for the offsite repository. Avoid printing those files. Restore to a separate directory, create disposable databases owned by the corresponding app roles, and feed each dump to `pg_restore --exit-on-error --no-owner --no-acl --role <owner>`. Verify both migration histories (`flyway_schema_history_main` and `flyway_schema_history_logs`) and application data before replacing a live database. `verify-restore.py` implements this safe offsite database check.
+For restic operations, use a root shell, export `/etc/shoptopus/restic.env`, and additionally `/etc/shoptopus/s3.env` for the offsite repository. Avoid printing those files. Restore to a separate directory, create disposable databases owned by the corresponding app roles, and feed each dump to `pg_restore --exit-on-error --no-owner --no-acl --role <owner>`. Verify both migration histories (`flyway_schema_history_main` and `flyway_schema_history_logs`) and application data before replacing a live database. `verify-restore.py` implements this safe offsite database check, comparing the restored migration versions with the running databases. Run it after a fresh backup while no deployment/migration is in progress.
 
 ## Host security and operations
 
