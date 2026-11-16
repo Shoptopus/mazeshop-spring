@@ -24,6 +24,7 @@ import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -71,14 +72,7 @@ public class AdminUiProductService {
         int safePage = page == null || page < 1 ? 1 : page;
         int safePerPage = perPage == null || perPage < 1 ? 12 : Math.min(perPage, 100);
 
-        List<Product> filtered = productRepository.findAll().stream()
-                .filter(product -> product.getDeletedAt() == null)
-                .filter(this::matchesActiveStore)
-                .filter(product -> matchesSearch(product, search))
-                .filter(product -> matchesStatus(product, status))
-                .filter(product -> matchesCategory(product, categoryId))
-                .sorted(Comparator.comparing(Product::getCreatedAt).reversed())
-                .toList();
+        List<Product> filtered = matchingProducts(search, status, categoryId);
 
         int total = filtered.size();
         int fromIndex = Math.min((safePage - 1) * safePerPage, total);
@@ -102,6 +96,77 @@ public class AdminUiProductService {
         response.put("meta", meta);
         response.put("filters", filters);
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> selection(String search, String status, String categoryId) {
+        return Map.of("ids", matchingProducts(search, status, categoryId).stream().map(Product::getId).toList());
+    }
+
+    private List<Product> matchingProducts(String search, String status, String categoryId) {
+        UUID storeId = adminStoreContext.currentStoreIdOrNull();
+        boolean multiStore = adminStoreContext.multiStoreEnabled();
+        return productRepository.findAll().stream()
+                .filter(product -> product.getDeletedAt() == null)
+                .filter(product -> !multiStore || belongsToStore(product, storeId))
+                .filter(product -> matchesSearch(product, search))
+                .filter(product -> matchesStatus(product, status))
+                .filter(product -> matchesCategory(product, categoryId))
+                .sorted(Comparator.comparing(Product::getCreatedAt).reversed())
+                .toList();
+    }
+
+    @Transactional("mainTransactionManager")
+    public Map<String, Object> bulk(String action, Object rawIds) {
+        Integer newStatus = switch (action) {
+            case "enable" -> 1;
+            case "disable" -> 0;
+            case "archive" -> 2;
+            case "delete" -> null;
+            default -> throw new ApiException(HttpStatus.BAD_REQUEST, "Unknown product action.", "Unsupported bulk product action");
+        };
+        List<UUID> ids = bulkIds(rawIds);
+        boolean singleStore = !adminStoreContext.multiStoreEnabled();
+        UUID storeId = adminStoreContext.currentStoreIdOrNull();
+        List<Product> products = productRepository.lockForBulkUpdate(ids, singleStore, storeId);
+        if (products.size() != ids.size()) {
+            throw new ApiException(HttpStatus.NOT_FOUND,
+                    "Some selected products are no longer available in this store. Clear the selection and try again.",
+                    "Bulk product selection contains a missing or out-of-scope product");
+        }
+        // Use the existing soft-delete and managed-media cleanup for a validated selection.
+        if (newStatus == null) {
+            adminProductService.bulkDelete(Map.of("ids", ids));
+        } else {
+            products.forEach(product -> product.setStatus(newStatus));
+        }
+        return Map.of("ids", ids, "count", products.size());
+    }
+
+    private List<UUID> bulkIds(Object rawIds) {
+        if (!(rawIds instanceof List<?> values) || values.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Select at least one product.", "Product ids are required");
+        }
+        var ids = new LinkedHashSet<UUID>();
+        for (Object value : values) {
+            try {
+                if (value instanceof String raw) {
+                    UUID id = UUID.fromString(raw);
+                    if (id.toString().equalsIgnoreCase(raw)) {
+                        ids.add(id);
+                        continue;
+                    }
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Malformed UUIDs must reject the whole selection.
+            }
+            throw new ApiException(HttpStatus.BAD_REQUEST, "The product selection is invalid.", "Product ids must be UUIDs");
+        }
+        return List.copyOf(ids);
+    }
+
+    private boolean belongsToStore(Product product, UUID storeId) {
+        return storeId != null && product.getStore() != null && storeId.equals(product.getStore().getId());
     }
 
     @Transactional(readOnly = true)
@@ -244,8 +309,7 @@ public class AdminUiProductService {
         if (!adminStoreContext.multiStoreEnabled()) {
             return true;
         }
-        Store activeStore = adminStoreContext.activeStoreForCurrentRequest().orElse(null);
-        return activeStore != null && product.getStore() != null && activeStore.getId().equals(product.getStore().getId());
+        return belongsToStore(product, adminStoreContext.currentStoreIdOrNull());
     }
 
     private boolean matchesSearch(Product product, String search) {
@@ -265,7 +329,7 @@ public class AdminUiProductService {
         return switch (status.toLowerCase(Locale.ROOT)) {
             case "archived" -> product.getStatus() == 2;
             case "draft" -> product.getStatus() == 0;
-            case "active" -> product.getStatus() != 2;
+            case "active" -> product.getStatus() == 1;
             default -> true;
         };
     }

@@ -400,6 +400,27 @@ public class AdminUiController {
         return ApiResponse.ok("Products", adminUiProductService.list(search, status, categoryId, page, perPage));
     }
 
+    @GetMapping("/products/selection")
+    public ApiResponse<?> productSelection(
+            Authentication authentication,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(name = "category_id", required = false) String categoryId
+    ) {
+        adminUiSessionService.requirePermission(requireEmail(authentication), "products.manage");
+        return ApiResponse.ok("Product selection", adminUiProductService.selection(search, status, categoryId));
+    }
+
+    @PostMapping("/products/bulk/{action}")
+    public ApiResponse<?> bulkProducts(
+            Authentication authentication,
+            @PathVariable String action,
+            @RequestBody Map<String, Object> body
+    ) {
+        adminUiSessionService.requirePermission(requireEmail(authentication), "products.manage");
+        return ApiResponse.ok("Products updated", adminUiProductService.bulk(action, body.get("ids")));
+    }
+
     @GetMapping("/products/{product}")
     public ApiResponse<?> product(Authentication authentication, @PathVariable String product) {
         adminUiSessionService.requirePermission(requireEmail(authentication), "products.view");

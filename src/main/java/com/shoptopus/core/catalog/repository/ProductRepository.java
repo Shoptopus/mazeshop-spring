@@ -1,12 +1,16 @@
 package com.shoptopus.core.catalog.repository;
 
 import com.shoptopus.core.catalog.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,6 +58,16 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             @Param("lang") String lang,
             Pageable pageable
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select p from Product p
+            where p.id in :ids and p.deletedAt is null and (:singleStore = true or p.store.id = :storeId)
+            order by p.id
+            """)
+    List<Product> lockForBulkUpdate(@Param("ids") Collection<UUID> ids,
+                                    @Param("singleStore") boolean singleStore,
+                                    @Param("storeId") UUID storeId);
 
     Optional<Product> findBySlugAndDeletedAtIsNull(String slug);
 }
